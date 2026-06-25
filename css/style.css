@@ -1,0 +1,37 @@
+body{
+    font-family: Arial;
+    background:#d1d7db;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+}
+
+.login-container{
+    background:white;
+    padding:20px;
+    border-radius:10px;
+    width:300px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+}
+
+input{
+    padding:10px;
+    border:1px solid #ccc;
+    border-radius:6px;
+}
+
+button{
+    padding:10px;
+    background:#00a884;
+    color:white;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+}
+
+.hidden{
+    display:none;
+}
