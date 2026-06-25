@@ -11,10 +11,10 @@ export async function sha256(text){
 }
 
 // Función para iniciar sesión
-export async function loginUser(usuario, password){
+export async function loginUser(usuarios, password){
     
     // 1. Buscamos el documento en la colección "usuarios" usando el nombre de usuario como ID
-    const ref = doc(db, "usuarios", usuario);
+    const ref = doc(db, "usuarios", usuarios);
     const snap = await getDoc(ref);
 
     // 2. Si el documento no existe, lanzamos error
