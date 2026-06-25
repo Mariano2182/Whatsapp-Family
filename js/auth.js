@@ -11,20 +11,24 @@ export async function sha256(text){
 }
 
 // Función para iniciar sesión
-export async function loginUser(usuario, password){
-    // Convertimos a string por seguridad absoluta
-    const usuarioLimpio = String(usuario).trim(); 
-    
-    // 1. Buscamos el documento usando el ID limpio
-    const ref = doc(db, "usuarios", usuarioLimpio);
-    const snap = await getDoc(ref);
+import { db } from "./firebase.js";
+import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
-    // 2. Si el documento no existe...
-    if(!snap.exists()){
+// Función para iniciar sesión
+export async function loginUser(usuario, password){
+    
+    // 1. Creamos una consulta para buscar el documento donde el campo 'usuario' coincida
+    const q = query(collection(db, "usuarios"), where("usuario", "==", usuario));
+    const querySnapshot = await getDocs(q);
+
+    // 2. Si no encontramos nada, el usuario no existe
+    if(querySnapshot.empty){
         throw new Error("Usuario no existe");
     }
 
-    const userData = snap.data();
+    // 3. Obtenemos los datos del primer documento que coincide
+    const docSnap = querySnapshot.docs[0];
+    const userData = docSnap.data();
 
     // 4. Encriptamos y comparamos
     const hash = await sha256(password);
