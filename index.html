@@ -1,357 +1,39 @@
 <!DOCTYPE html>
-
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Chat Familiar</title>
 
-<style>
-:root{
-    --bg-body:#d1d7db;
-    --bg-app:#ffffff;
-    --bg-sidebar:#f0f2f5;
-    --bg-chat:#efeae2;
-    --primary-color:#00a884;
-    --msg-sent:#d9fdd3;
-    --msg-received:#ffffff;
-    --text-main:#111b21;
-    --text-muted:#667781;
-    --border-color:#e9edef;
-}
-
-*{
-    box-sizing:border-box;
-    margin:0;
-    padding:0;
-    font-family:'Segoe UI',sans-serif;
-}
-
-body{
-    background-color:var(--bg-body);
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    height:100vh;
-}
-
-.app-container{
-    display:flex;
-    width:100%;
-    max-width:1200px;
-    height:100vh;
-    background:white;
-}
-
-.sidebar{
-    width:30%;
-    min-width:300px;
-    border-right:1px solid var(--border-color);
-    background:white;
-    display:flex;
-    flex-direction:column;
-}
-
-.header{
-    height:60px;
-    background:var(--bg-sidebar);
-    display:flex;
-    align-items:center;
-    padding:10px 16px;
-}
-
-.avatar{
-    width:40px;
-    height:40px;
-    border-radius:50%;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    color:white;
-    font-weight:bold;
-}
-
-.contact-list{
-    flex:1;
-}
-
-.contact-item{
-    display:flex;
-    align-items:center;
-    padding:12px 16px;
-}
-
-.contact-info{
-    margin-left:15px;
-}
-
-.contact-name{
-    font-weight:bold;
-}
-
-.contact-last-msg{
-    color:var(--text-muted);
-    font-size:.85rem;
-}
-
-.chat-area{
-    flex:1;
-    display:flex;
-    flex-direction:column;
-    background:var(--bg-chat);
-}
-
-.chat-header{
-    height:60px;
-    background:var(--bg-sidebar);
-    display:flex;
-    align-items:center;
-    padding:10px 16px;
-}
-
-.chat-header-info{
-    margin-left:15px;
-}
-
-.messages-container{
-    flex:1;
-    overflow-y:auto;
-    padding:20px;
-    display:flex;
-    flex-direction:column;
-}
-
-.message{
-    max-width:70%;
-    padding:8px 12px;
-    margin-bottom:10px;
-    border-radius:8px;
-    word-wrap:break-word;
-}
-
-.message-sent{
-    background:var(--msg-sent);
-    align-self:flex-end;
-}
-
-.message-received{
-    background:white;
-    align-self:flex-start;
-}
-
-.message-time{
-    display:block;
-    text-align:right;
-    font-size:.7rem;
-    color:gray;
-    margin-top:5px;
-}
-
-.input-area{
-    height:62px;
-    background:var(--bg-sidebar);
-    display:flex;
-    padding:10px;
-}
-
-.message-input{
-    flex:1;
-    border:none;
-    border-radius:8px;
-    padding:10px;
-    outline:none;
-}
-
-.send-btn{
-    width:50px;
-    margin-left:10px;
-    border:none;
-    border-radius:50%;
-    background:var(--primary-color);
-    color:white;
-    cursor:pointer;
-}
-
-@media(max-width:768px){
-    .sidebar{
-        display:none;
-    }
-}
-</style>
-
+<link rel="stylesheet" href="css/style.css">
 </head>
 
 <body>
 
-<div class="app-container">
+<div id="login-container" class="login-container">
 
-<div class="sidebar">
-    <div class="header">
-        <div class="avatar" style="background:#3498db;" id="avatarUsuario">U</div>
-    </div>
+    <h2>Chat Familiar</h2>
 
-    <div class="contact-list">
+    <input type="text" id="usuario" placeholder="Usuario">
+    <input type="password" id="password" placeholder="Contraseña">
 
-        <div class="contact-item">
-            <div class="avatar" style="background:#e74c3c;">F</div>
-            <div class="contact-info">
-                <div class="contact-name">Familia</div>
-                <div class="contact-last-msg">Chat Familiar en línea</div>
-            </div>
-        </div>
+    <button onclick="login()">Ingresar</button>
 
-    </div>
-</div>
-
-<div class="chat-area">
-
-    <div class="chat-header">
-        <div class="avatar" style="background:#e74c3c;">F</div>
-
-        <div class="chat-header-info">
-            <div class="contact-name">Grupo Familiar</div>
-            <div class="contact-last-msg">Firebase en tiempo real</div>
-        </div>
-    </div>
-
-    <div class="messages-container" id="chat-box">
-    </div>
-
-    <div class="input-area">
-        <input
-            type="text"
-            id="msg-input"
-            class="message-input"
-            placeholder="Escribe un mensaje..."
-        >
-
-        <button class="send-btn" id="send-btn">➤</button>
-    </div>
+    <p id="error"></p>
 
 </div>
 
+<div id="app" class="hidden">
+
+    <h1>Bienvenido 👋</h1>
+
+    <p id="user-info"></p>
+
+    <button onclick="logout()">Cerrar sesión</button>
+
 </div>
 
-<script type="module">
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-analytics.js";
-
-import {
-    getFirestore,
-    collection,
-    addDoc,
-    query,
-    orderBy,
-    onSnapshot
-} from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
-
-/*
-PEGA AQUÍ TU CONFIGURACIÓN FIREBASE
-*/
-const firebaseConfig = {
-  apiKey: "AIzaSyALKug8P2-KqgL8xfKj16So4MgRysmGVV4",
-  authDomain: "chat-familiar-app.firebaseapp.com",
-  projectId: "chat-familiar-app",
-  storageBucket: "chat-familiar-app.firebasestorage.app",
-  messagingSenderId: "638014957754",
-  appId: "1:638014957754:web:c3437cf4310050bfbb7a83",
-  measurementId: "G-6SKRCDTYXQ"
-};
-
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-const db = getFirestore(app);
-
-let usuario = localStorage.getItem("chatUsuario");
-
-if(!usuario){
-
-    usuario = prompt("Ingresa tu nombre");
-
-    if(!usuario){
-        usuario = "Invitado";
-    }
-
-    localStorage.setItem("chatUsuario",usuario);
-}
-
-document.getElementById("avatarUsuario").innerText =
-usuario.charAt(0).toUpperCase();
-
-const chatBox = document.getElementById("chat-box");
-
-const mensajesQuery = query(
-    collection(db,"mensajes"),
-    orderBy("fecha","asc")
-);
-
-onSnapshot(mensajesQuery,(snapshot)=>{
-
-    chatBox.innerHTML = "";
-
-    snapshot.forEach((doc)=>{
-
-        const data = doc.data();
-
-        const div = document.createElement("div");
-
-        div.className =
-            data.usuario === usuario
-            ? "message message-sent"
-            : "message message-received";
-
-        div.innerHTML = `
-            <strong>${data.usuario}</strong><br>
-            ${data.texto}
-            <span class="message-time">${data.hora}</span>
-        `;
-
-        chatBox.appendChild(div);
-    });
-
-    chatBox.scrollTop = chatBox.scrollHeight;
-});
-
-async function enviarMensaje(){
-
-    const input = document.getElementById("msg-input");
-
-    const texto = input.value.trim();
-
-    if(!texto) return;
-
-    const ahora = new Date();
-
-    const hora =
-        String(ahora.getHours()).padStart(2,"0")
-        + ":" +
-        String(ahora.getMinutes()).padStart(2,"0");
-
-    await addDoc(collection(db,"mensajes"),{
-        usuario:usuario,
-        texto:texto,
-        hora:hora,
-        fecha:Date.now()
-    });
-
-    input.value = "";
-}
-
-document.getElementById("send-btn")
-.addEventListener("click",enviarMensaje);
-
-document.getElementById("msg-input")
-.addEventListener("keypress",(e)=>{
-
-    if(e.key==="Enter"){
-        enviarMensaje();
-    }
-
-});
-
-</script>
+<script type="module" src="js/app.js"></script>
 
 </body>
 </html>
