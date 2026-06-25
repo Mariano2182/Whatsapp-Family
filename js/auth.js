@@ -15,7 +15,16 @@ export async function sha256(text){
 
 export async function loginUser(usuario, password){
 
-    const q = query(collection(db,"usuarios"), where("usuario","==",usuario));
+    import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
+const ref = doc(db, "usuarios", usuario);
+const snap = await getDoc(ref);
+
+if(!snap.exists()){
+    throw new Error("Usuario no existe");
+}
+
+const userData = snap.data();
     const snap = await getDocs(q);
 
     if(snap.empty){
