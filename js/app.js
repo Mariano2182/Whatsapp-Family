@@ -4,14 +4,15 @@ let currentUser = null;
 
 window.login = async function(){
 
-    const usuario = document.getElementById("usuarios").value;
+    // Corregido: ID debe ser "usuario" (singular) según tu HTML
+    const usuario = document.getElementById("usuario").value; 
     const password = document.getElementById("password").value;
 
     const error = document.getElementById("error");
 
     try{
-
-        const user = await loginUser(usuarios, password);
+        // Corregido: pasamos la variable 'usuario'
+        const user = await loginUser(usuario, password);
 
         currentUser = user;
 
@@ -20,8 +21,9 @@ window.login = async function(){
         document.getElementById("login-container").classList.add("hidden");
         document.getElementById("app").classList.remove("hidden");
 
+        // Corregido: accedemos al campo 'usuario' (singular)
         document.getElementById("user-info").innerText =
-            `Usuario: ${user.usuarios} | Rol: ${user.rol}`;
+            `Usuario: ${user.usuario} | Rol: ${user.rol}`;
 
     }catch(e){
         error.innerText = e.message;
@@ -34,7 +36,6 @@ window.logout = function(){
 };
 
 window.onload = function(){
-
     const saved = localStorage.getItem("user");
 
     if(saved){
@@ -43,7 +44,8 @@ window.onload = function(){
 
         const user = JSON.parse(saved);
 
+        // Corregido: acceso al campo 'usuario'
         document.getElementById("user-info").innerText =
-            `Usuario: ${user.usuarios} | Rol: ${user.rol}`;
+            `Usuario: ${user.usuario} | Rol: ${user.rol}`;
     }
 };
