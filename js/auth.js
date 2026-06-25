@@ -1,6 +1,6 @@
 import { db } from "./firebase.js";
 // Agrupamos todos los imports de Firestore al principio
-import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
 // Función para encriptar la contraseña
 export async function sha256(text){
