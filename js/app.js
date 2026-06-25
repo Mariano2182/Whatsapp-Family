@@ -4,14 +4,14 @@ let currentUser = null;
 
 window.login = async function(){
 
-    const usuario = document.getElementById("usuario").value;
+    const usuario = document.getElementById("usuarios").value;
     const password = document.getElementById("password").value;
 
     const error = document.getElementById("error");
 
     try{
 
-        const user = await loginUser(usuario, password);
+        const user = await loginUser(usuarios, password);
 
         currentUser = user;
 
@@ -21,7 +21,7 @@ window.login = async function(){
         document.getElementById("app").classList.remove("hidden");
 
         document.getElementById("user-info").innerText =
-            `Usuario: ${user.usuario} | Rol: ${user.rol}`;
+            `Usuario: ${user.usuarios} | Rol: ${user.rol}`;
 
     }catch(e){
         error.innerText = e.message;
@@ -44,6 +44,6 @@ window.onload = function(){
         const user = JSON.parse(saved);
 
         document.getElementById("user-info").innerText =
-            `Usuario: ${user.usuario} | Rol: ${user.rol}`;
+            `Usuario: ${user.usuarios} | Rol: ${user.rol}`;
     }
 };
