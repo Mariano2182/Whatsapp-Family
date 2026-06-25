@@ -11,27 +11,27 @@ export async function sha256(text){
 }
 
 // Función para iniciar sesión
-export async function loginUser(usuarios, password){
+export async function loginUser(usuario, password){
+    // Convertimos a string por seguridad absoluta
+    const usuarioLimpio = String(usuario).trim(); 
     
-    // 1. Buscamos el documento en la colección "usuarios" usando el nombre de usuario como ID
-    const ref = doc(db, "usuarios", usuarios);
+    // 1. Buscamos el documento usando el ID limpio
+    const ref = doc(db, "usuarios", usuarioLimpio);
     const snap = await getDoc(ref);
 
-    // 2. Si el documento no existe, lanzamos error
+    // 2. Si el documento no existe...
     if(!snap.exists()){
         throw new Error("Usuario no existe");
     }
 
-    // 3. Extraemos los datos de la base de datos
     const userData = snap.data();
 
-    // 4. Encriptamos la contraseña que ingresó el usuario para compararla
+    // 4. Encriptamos y comparamos
     const hash = await sha256(password);
 
     if(userData.passwordHash !== hash){
         throw new Error("Contraseña incorrecta");
     }
 
-    // 5. Si todo está correcto, devolvemos los datos del usuario
     return userData;
 }
