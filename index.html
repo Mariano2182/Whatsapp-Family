@@ -6,21 +6,15 @@
     <title>Chat Familiar</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
-        /* Estilos para el look de Chat tipo WhatsApp */
         .chat-container { display: flex; flex-direction: column; height: 70vh; max-width: 500px; margin: 20px auto; border: 1px solid #ddd; border-radius: 8px; background-color: #efeae2; overflow: hidden; }
         .chat-header { background-color: #00a884; color: white; padding: 12px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
         .messages-box { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
-        
-        /* Modificado: Se agrega espacio a la derecha para la papelera */
         .msg { max-width: 75%; padding: 8px 35px 8px 12px; border-radius: 8px; font-size: 0.95em; line-height: 1.4; position: relative; word-break: break-word; }
         .msg-envio { background-color: #d9fdd3; align-self: flex-end; border-top-right-radius: 0; }
         .msg-recepcion { background-color: #ffffff; align-self: flex-start; border-top-left-radius: 0; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
         .msg-meta { font-size: 0.75em; color: #667781; display: block; margin-bottom: 2px; font-weight: bold; }
-        
-        /* NUEVO: Estilo elegante para el botón de borrar */
         .delete-btn { position: absolute; right: 8px; top: 8px; cursor: pointer; font-size: 0.8em; opacity: 0.4; transition: opacity 0.2s; }
         .delete-btn:hover { opacity: 1; color: red; }
-
         .input-chat-area { display: flex; background-color: #f0f2f5; padding: 10px; gap: 10px; border-top: 1px solid #ddd; }
         .input-chat-area input { flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #ccc; outline: none; }
         .input-chat-area button { background-color: #00a884; color: white; border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 1.1em; }
@@ -28,6 +22,7 @@
 </head>
 <body>
 
+    <!-- PANTALLA 1: Formulario de Login -->
     <div id="login-container" class="login-container">
         <h2>Chat Familiar</h2>
         <input type="text" id="usuario" placeholder="Usuario">
@@ -37,6 +32,7 @@
         <p id="setup-msg" style="color: #00a884; font-weight: bold; font-size: 0.9em; margin-top: 10px;"></p>
     </div>
 
+    <!-- PANTALLA 2: Bienvenida y Chat en Tiempo Real -->
     <div id="app" class="hidden">
         <div style="max-width: 500px; margin: auto; text-align: center; margin-top: 10px;">
             <span id="user-info" style="font-weight: bold; font-size: 0.9em;"></span> | 
@@ -57,21 +53,30 @@
         </div>
     </div>
 
-    <div id="admin-panel" class="hidden" style="max-width: 400px; margin: auto; padding: 20px; border: 1px solid #ccc; border-radius: 8px; margin-top: 50px;">
+    <!-- PANTALLA 3: Panel de Control Secreto -->
+    <div id="admin-panel" class="hidden" style="max-width: 400px; margin: auto; padding: 20px; border: 1px solid #ccc; border-radius: 8px; margin-top: 30px;">
         <h2>⚙️ Crear Nuevo Familiar</h2>
-        <p style="font-size: 0.9em; color: #555; margin-bottom: 15px;">Registra a un miembro de la familia con sus propias credenciales.</p>
-
         <input type="text" id="nuevo-usuario" placeholder="Nombre del familiar (ej: mama)" style="display:block; width:100%; margin-bottom: 10px; padding:8px;">
         <input type="password" id="nueva-password" placeholder="Contraseña para él/ella" style="display:block; width:100%; margin-bottom: 10px; padding:8px;">
         
-        <label style="font-size: 0.85em; font-weight: bold;">Rango asignado:</label>
+        <label style="font-size: 0.85em; font-weight: bold;">Rango:</label>
         <select id="nuevo-rol" style="display:block; width:100%; margin-bottom: 15px; padding:8px;">
             <option value="usuario">Usuario Común (Solo Chat)</option>
             <option value="admin">Administrador Secundario</option>
             <option value="superadmin">Superadmin (Control Total)</option>
         </select>
-
         <button onclick="crearFamiliar()" style="background-color: #00a884; width: 100%; margin-bottom: 10px; color: white; border: none; padding: 10px; font-weight: bold; cursor: pointer;">Crear Cuenta Familiar</button>
+
+        <!-- NUEVA SECCIÓN: FORMULARIO PARA CAMBIAR NOMBRE DE USUARIO -->
+        <hr style="margin: 25px 0; border: 0; border-top: 1px dashed #ccc;">
+        <h2>✏️ Cambiar Nombre de un Familiar</h2>
+        <p style="font-size: 0.85em; color: #555; margin-bottom: 10px;">Modifica el nombre de ingreso y actualiza todo su historial de chat.</p>
+        <input type="text" id="edit-usuario-actual" placeholder="Nombre actual exacto (ej: mama)" style="display:block; width:100%; margin-bottom: 10px; padding:8px;">
+        <input type="text" id="edit-usuario-nuevo" placeholder="Nuevo nombre elegido (ej: mami)" style="display:block; width:100%; margin-bottom: 15px; padding:8px;">
+        <button onclick="cambiarNombreFamiliar()" style="background-color: #34b7f1; width: 100%; color: white; border: none; padding: 10px; font-weight: bold; cursor: pointer;">Actualizar Nombre de Usuario</button>
+        
+        <!-- Botón de regreso -->
+        <hr style="margin: 20px 0; border: 0; border-top: 1px solid #ccc;">
         <button onclick="volverAlApp()" style="background-color: #666; width: 100%; color: white; border: none; padding: 10px; font-weight: bold; cursor: pointer;">⬅️ Volver Al Chat</button>
         <p id="admin-msg" style="font-weight: bold; margin-top: 15px; text-align: center;"></p>
     </div>
