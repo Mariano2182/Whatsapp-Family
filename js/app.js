@@ -1,6 +1,5 @@
 import { db } from "./firebase.js";
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
-// MODIFICADO: Se agrega 'actualizarNombreUsuario' a las importaciones de auth
 import { loginUser, verificarYCrearUsuarioDefecto, registrarNuevoUsuario, actualizarNombreUsuario } from "./auth.js";
 
 let currentUser = null;
@@ -43,6 +42,23 @@ function cargarChatEnTiempoReal() {
                 divMensaje.className = "msg msg-recepcion";
             }
 
+            // NUEVO: Convertir y formatear la fecha a Horas:Minutos (HH:MM)
+            let horaFormateada = "";
+            let fechaMensaje = null;
+
+            if (datos.fecha && typeof datos.fecha.toDate === "function") {
+                // Si Firebase ya guardó el timestamp en el servidor, lo usamos
+                fechaMensaje = datos.fecha.toDate();
+            } else {
+                // Si es un mensaje instantáneo local que aún viaja al servidor, usamos la hora actual del dispositivo
+                fechaMensaje = new Date();
+            }
+
+            const horas = String(fechaMensaje.getHours()).padStart(2, '0');
+            const minutos = String(fechaMensaje.getMinutes()).padStart(2, '0');
+            horaFormateada = `${horas}:${minutos}`;
+
+
             const esMio = datos.remitente === currentUser.usuario;
             const esSuperAdmin = currentUser.rol === "superadmin";
 
@@ -51,7 +67,13 @@ function cargarChatEnTiempoReal() {
                 botonBorrar = `<span class="delete-btn" onclick="eliminarMensaje('${idDoc}')" title="Eliminar para todos">🗑️</span>`;
             }
 
-            divMensaje.innerHTML = `<span class="msg-meta">${datos.remitente}</span> ${datos.texto} ${botonBorrar}`;
+            // MODIFICADO: Añadimos la etiqueta de texto y la hora formateada abajo
+            divMensaje.innerHTML = `
+                <span class="msg-meta">${datos.remitente}</span> 
+                <span style="display:block;">${datos.texto}</span>
+                <span class="msg-time">${horaFormateada}</span>
+                ${botonBorrar}
+            `;
             chatBox.appendChild(divMensaje);
         });
 
@@ -71,7 +93,6 @@ window.eliminarMensaje = async function(idDoc) {
     }
 };
 
-// NUEVA FUNCIÓN GLOBAL: Gestiona la acción de cambiar el nombre desde la interfaz gráfica
 window.cambiarNombreFamiliar = async function() {
     const actual = document.getElementById("edit-usuario-actual").value;
     const nuevo = document.getElementById("edit-usuario-nuevo").value;
@@ -81,18 +102,15 @@ window.cambiarNombreFamiliar = async function() {
 
     try {
         const nombreFinal = await actualizarNombreUsuario(actual, nuevo);
-        
         adminMsg.style.color = "green";
         adminMsg.innerText = `¡Éxito! Se cambió el nombre de '${actual}' a '${nombreFinal}'.`;
 
-        // REGLA SENSACIONAL: Si el superadmin se cambió a sí mismo, actualizamos su sesión actual
         if (currentUser.usuario === actual.trim().toLowerCase()) {
             currentUser.usuario = nombreFinal;
             localStorage.setItem("user", JSON.stringify(currentUser));
             document.getElementById("user-info").innerText = `Usuario: ${currentUser.usuario} | Rol: ${currentUser.rol}`;
         }
 
-        // Limpiamos las cajas de texto
         document.getElementById("edit-usuario-actual").value = "";
         document.getElementById("edit-usuario-nuevo").value = "";
     } catch (e) {
