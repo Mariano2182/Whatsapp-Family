@@ -1,7 +1,7 @@
 import { db } from "./firebase.js";
-import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+import { collection, query, where, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
-// Función para encriptar la contraseña
+// Función para encriptar en formato SHA-256 nativo
 export async function sha256(text) {
     const msgBuffer = new TextEncoder().encode(text);
     const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer);
@@ -9,7 +9,7 @@ export async function sha256(text) {
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-// Función para iniciar sesión (Adaptada al campo real de tu Firebase: 'usuarios')
+// Función estándar para el inicio de sesión
 export async function loginUser(usuario, password) {
     const usuarioLimpio = (typeof usuario === 'string') ? usuario.trim() : String(usuario || "").trim();
     
@@ -17,8 +17,8 @@ export async function loginUser(usuario, password) {
         throw new Error("El nombre de usuario no puede estar vacío");
     }
 
-    // Buscamos apuntando exactamente al campo 'usuarios' (plural) que tiene tu base de datos
-    const q = query(collection(db, "usuarios"), where("usuarios", "==", usuarioLimpio));
+    // Consulta exacta apuntando al campo 'usuario' en singular
+    const q = query(collection(db, "usuarios"), where("usuario", "==", usuarioLimpio));
     const querySnapshot = await getDocs(q);
 
     if (querySnapshot.empty) {
@@ -28,15 +28,29 @@ export async function loginUser(usuario, password) {
     const docSnap = querySnapshot.docs[0];
     const userData = docSnap.data();
 
-    // Validamos la contraseña encriptada
+    // Verificación de hashes de contraseñas
     const hash = await sha256(password);
     if (userData.passwordHash !== hash) {
         throw new Error("Contraseña incorrecta");
     }
 
-    // Devolvemos el objeto mapeando 'usuario' para que app.js lo reconozca sin errores
-    return {
-        ...userData,
-        usuario: userData.usuarios, // Forzamos compatibilidad
-    };
+    return userData;
+}
+
+// CREADOR AUTOMÁTICO: Si borraste las colecciones, esta función reconstruye a 'nano' perfectamente
+export async function verificarYCrearUsuarioDefecto() {
+    const querySnapshot = await getDocs(collection(db, "usuarios"));
+    
+    if (querySnapshot.empty) {
+        const hashContrasena = await sha256("nano123");
+        
+        // Inserta la estructura limpia que necesita el programa
+        await addDoc(collection(db, "usuarios"), {
+            usuario: "nano",
+            passwordHash: hashContrasena,
+            rol: "admin"
+        });
+        return true;
+    }
+    return false;
 }
