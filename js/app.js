@@ -1,9 +1,10 @@
 import { db } from "./firebase.js";
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
-import { loginUser, verificarYCrearUsuarioDefecto, registrarNuevoUsuario, actualizarNombreUsuario } from "./auth.js";
+import { loginUser, verificarYCrearUsuarioDefecto, registrarNuevoUsuario, actualizarNombreUsuario, eliminarUsuario, cambiarPasswordUsuario } from "./auth.js";
 
 let currentUser = null;
 let unsubscribeChat = null;
+let unsubscribeUsuarios = null; 
 
 function mostrarPantallaSegunRol(user) {
     document.getElementById("login-container").classList.add("hidden");
@@ -42,22 +43,18 @@ function cargarChatEnTiempoReal() {
                 divMensaje.className = "msg msg-recepcion";
             }
 
-            // NUEVO: Convertir y formatear la fecha a Horas:Minutos (HH:MM)
             let horaFormateada = "";
             let fechaMensaje = null;
 
             if (datos.fecha && typeof datos.fecha.toDate === "function") {
-                // Si Firebase ya guardó el timestamp en el servidor, lo usamos
                 fechaMensaje = datos.fecha.toDate();
             } else {
-                // Si es un mensaje instantáneo local que aún viaja al servidor, usamos la hora actual del dispositivo
                 fechaMensaje = new Date();
             }
 
             const horas = String(fechaMensaje.getHours()).padStart(2, '0');
             const minutos = String(fechaMensaje.getMinutes()).padStart(2, '0');
             horaFormateada = `${horas}:${minutos}`;
-
 
             const esMio = datos.remitente === currentUser.usuario;
             const esSuperAdmin = currentUser.rol === "superadmin";
@@ -67,7 +64,6 @@ function cargarChatEnTiempoReal() {
                 botonBorrar = `<span class="delete-btn" onclick="eliminarMensaje('${idDoc}')" title="Eliminar para todos">🗑️</span>`;
             }
 
-            // MODIFICADO: Añadimos la etiqueta de texto y la hora formateada abajo
             divMensaje.innerHTML = `
                 <span class="msg-meta">${datos.remitente}</span> 
                 <span style="display:block;">${datos.texto}</span>
@@ -81,6 +77,68 @@ function cargarChatEnTiempoReal() {
     });
 }
 
+// MODIFICADO: Aplica el escudo visual a 'marian' en la lista en tiempo real
+function escucharUsuariosAdmin() {
+    if (unsubscribeUsuarios) unsubscribeUsuarios();
+    const listaBox = document.getElementById("lista-usuarios");
+
+    unsubscribeUsuarios = onSnapshot(collection(db, "usuarios"), (snapshot) => {
+        listaBox.innerHTML = "";
+
+        snapshot.forEach((docSnap) => {
+            const u = docSnap.data();
+            const divItem = document.createElement("div");
+            divItem.className = "user-item";
+
+            let botonesAccion = "";
+            
+            // MODIFICADO: El escudo ahora protege a 'marian'
+            if (u.usuario !== "marian") {
+                botonesAccion = `
+                    <div>
+                        <button onclick="panelCambiarClave('${u.usuario}')" style="background:#34b7f1; color:white; border:none; padding:5px 8px; border-radius:3px; cursor:pointer; font-size:0.8em; font-weight:bold; margin-right:4px;">🔑 Clave</button>
+                        <button onclick="panelDarBaja('${u.usuario}')" style="background:#ff3b30; color:white; border:none; padding:5px 8px; border-radius:3px; cursor:pointer; font-size:0.8em; font-weight:bold;">🗑️ Baja</button>
+                    </div>
+                `;
+            } else {
+                botonesAccion = `<span style="color:#00a884; font-size:0.8em; font-weight:bold; font-style:italic;">👑 Creador</span>`;
+            }
+
+            divItem.innerHTML = `<span><strong>${u.usuario}</strong> (${u.rol})</span> ${botonesAccion}`;
+            listaBox.appendChild(divItem);
+        });
+    });
+}
+
+window.panelDarBaja = async function(usuario) {
+    const confirmar = confirm(`¿Estás completamente seguro de dar de BAJA la cuenta de '${usuario}'? No podrá volver a loguearse.`);
+    if (!confirmar) return;
+
+    try {
+        await eliminarUsuario(usuario);
+        alert(`La cuenta de '${usuario}' fue eliminada del sistema con éxito.`);
+    } catch(e) {
+        alert(e.message);
+    }
+};
+
+window.panelCambiarClave = async function(usuario) {
+    const nuevaClave = prompt(`Escribe la NUEVA CONTRASEÑA para el familiar '${usuario}':`);
+    if (nuevaClave === null) return;
+    
+    if (!nuevaClave.trim()) {
+        alert("Error: La contraseña no puede estar en blanco.");
+        return;
+    }
+
+    try {
+        await cambiarPasswordUsuario(usuario, nuevaClave);
+        alert(`¡Contraseña de '${usuario}' actualizada e encriptada correctamente!`);
+    } catch(e) {
+        alert(e.message);
+    }
+};
+
 window.eliminarMensaje = async function(idDoc) {
     const confirmar = confirm("¿Estás seguro de que quieres eliminar este mensaje para todos?");
     if (!confirmar) return;
@@ -89,7 +147,6 @@ window.eliminarMensaje = async function(idDoc) {
         await deleteDoc(doc(db, "mensajes", idDoc));
     } catch (e) {
         console.error("Error al eliminar el mensaje:", e);
-        alert("No se pudo eliminar.");
     }
 };
 
@@ -155,6 +212,7 @@ window.login = async function(){
 
 window.logout = function(){
     if (unsubscribeChat) unsubscribeChat();
+    if (unsubscribeUsuarios) unsubscribeUsuarios(); 
     localStorage.removeItem("user");
     location.reload();
 };
@@ -163,33 +221,15 @@ window.abrirPanelAdmin = function() {
     document.getElementById("app").classList.add("hidden");
     document.getElementById("admin-panel").classList.remove("hidden");
     document.getElementById("admin-msg").innerText = "";
+    escucharUsuariosAdmin(); 
 };
 
 window.volverAlApp = function() {
+    if (unsubscribeUsuarios) unsubscribeUsuarios(); 
     document.getElementById("admin-panel").classList.add("hidden");
     document.getElementById("app").classList.remove("hidden");
     const chatBox = document.getElementById("chat-box");
     chatBox.scrollTop = chatBox.scrollHeight;
-};
-
-window.crearFamiliar = async function() {
-    const nuevoUser = document.getElementById("nuevo-usuario").value;
-    const nuevaPass = document.getElementById("nueva-password").value;
-    const nuevoRol = document.getElementById("nuevo-rol").value;
-    const adminMsg = document.getElementById("admin-msg");
-
-    adminMsg.innerText = "";
-
-    try {
-        await registrarNuevoUsuario(nuevoUser, nuevaPass, nuevoRol);
-        adminMsg.style.color = "green";
-        adminMsg.innerText = `¡Éxito! Cuenta de '${nuevoUser}' creada.`;
-        document.getElementById("nuevo-usuario").value = "";
-        document.getElementById("nueva-password").value = "";
-    } catch (e) {
-        adminMsg.style.color = "red";
-        adminMsg.innerText = e.message;
-    }
 };
 
 document.addEventListener("keypress", function(e) {
