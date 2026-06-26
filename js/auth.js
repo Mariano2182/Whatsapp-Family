@@ -9,7 +9,7 @@ export async function sha256(text) {
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-// Función estándar para el inicio de sesión
+// Función para iniciar sesión
 export async function loginUser(usuario, password) {
     const usuarioLimpio = (typeof usuario === 'string') ? usuario.trim() : String(usuario || "").trim();
     
@@ -17,7 +17,6 @@ export async function loginUser(usuario, password) {
         throw new Error("El nombre de usuario no puede estar vacío");
     }
 
-    // Consulta exacta apuntando al campo 'usuario' en singular
     const q = query(collection(db, "usuarios"), where("usuario", "==", usuarioLimpio));
     const querySnapshot = await getDocs(q);
 
@@ -28,7 +27,6 @@ export async function loginUser(usuario, password) {
     const docSnap = querySnapshot.docs[0];
     const userData = docSnap.data();
 
-    // Verificación de hashes de contraseñas
     const hash = await sha256(password);
     if (userData.passwordHash !== hash) {
         throw new Error("Contraseña incorrecta");
@@ -37,18 +35,44 @@ export async function loginUser(usuario, password) {
     return userData;
 }
 
-// CREADOR AUTOMÁTICO: Si borraste las colecciones, esta función reconstruye a 'nano' perfectamente
+// NUEVA FUNCIÓN: Registra un nuevo miembro familiar en Firebase
+export async function registrarNuevoUsuario(usuario, password, rol) {
+    const userLimpio = usuario.trim().toLowerCase();
+    
+    if (!userLimpio || !password.trim()) {
+        throw new Error("El nombre de usuario y la contraseña no pueden estar vacíos.");
+    }
+
+    // Validación preventiva: verificar si ya existe ese familiar en la red
+    const q = query(collection(db, "usuarios"), where("usuario", "==", userLimpio));
+    const querySnapshot = await getDocs(q);
+
+    if (!querySnapshot.empty) {
+        throw new Error("Ese nombre de usuario ya está registrado en la familia.");
+    }
+
+    // Encriptamos la contraseña del familiar antes de guardarla
+    const hashContrasena = await sha256(password.trim());
+
+    // Guardamos el nuevo documento con la estructura perfecta
+    await addDoc(collection(db, "usuarios"), {
+        usuario: userLimpio,
+        passwordHash: hashContrasena,
+        rol: rol
+    });
+
+    return true;
+}
+
+// CREADOR AUTOMÁTICO DE SEGURIDAD
 export async function verificarYCrearUsuarioDefecto() {
     const querySnapshot = await getDocs(collection(db, "usuarios"));
-    
     if (querySnapshot.empty) {
         const hashContrasena = await sha256("nano123");
-        
-        // Inserta la estructura limpia que necesita el programa
         await addDoc(collection(db, "usuarios"), {
             usuario: "nano",
             passwordHash: hashContrasena,
-            rol: "admin"
+            rol: "superadmin"
         });
         return true;
     }
