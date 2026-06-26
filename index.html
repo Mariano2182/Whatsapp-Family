@@ -38,6 +38,7 @@
             display: flex; 
             flex-direction: column; 
             box-shadow: 0 4px 20px rgba(0,0,0,0.15); 
+            position: relative;
         }
 
         @media (min-width: 600px) {
@@ -59,52 +60,20 @@
             background: #f0f2f5;
         }
 
-        .login-box h2 { 
-            margin-bottom: 8px; 
-            color: var(--wa-green-dark); 
-            font-size: 1.6rem;
-        }
-
-        .login-box p {
-            color: #667781;
-            font-size: 0.9rem;
-            margin-bottom: 25px;
-            text-align: center;
-        }
-
-        .login-box input { 
-            width: 100%; 
-            padding: 12px 15px; 
-            margin-bottom: 15px; 
-            border: none; 
-            border-radius: 8px; 
-            outline: none; 
-            font-size: 1rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-
-        .login-box button { 
-            width: 100%; 
-            padding: 12px; 
-            background-color: var(--wa-green-dark); 
-            color: white; 
-            border: none; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            font-weight: bold; 
-            font-size: 1rem;
-            transition: background 0.2s;
-        }
+        .login-box h2 { margin-bottom: 8px; color: var(--wa-green-dark); font-size: 1.6rem; }
+        .login-box p { color: #667781; font-size: 0.9rem; margin-bottom: 25px; text-align: center; }
+        .login-box input { width: 100%; padding: 12px 15px; margin-bottom: 15px; border: none; border-radius: 8px; outline: none; font-size: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .login-box button { width: 100%; padding: 12px; background-color: var(--wa-green-dark); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1rem; transition: background 0.2s; }
         .login-box button:hover { background-color: #006653; }
         .error-msg { color: #ea0038; margin-top: 12px; font-size: 0.9em; }
 
-        /* Interfaz del Chat */
-        .chat-interface { display: flex; flex-direction: column; height: 100%; background-color: var(--bg-chat); position: relative; }
+        /* Estructura Base de Vistas */
+        .view-layout { display: flex; flex-direction: column; height: 100%; background-color: #ffffff; }
 
-        /* Encabezado Verde de WhatsApp */
-        .chat-header { 
+        /* Encabezados */
+        .app-header { 
             background: var(--wa-green-dark); 
-            padding: 12px 16px; 
+            padding: 14px 16px; 
             display: flex; 
             justify-content: space-between; 
             align-items: center; 
@@ -112,171 +81,81 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             z-index: 10;
         }
+        .app-header .title-area { display: flex; flex-direction: column; }
+        .app-header .main-title { font-weight: bold; font-size: 1.2rem; }
+        .app-header .sub-title { font-size: 0.75rem; color: #c1ece3; margin-top: 2px; }
+        .app-header button { background: transparent; border: none; color: white; padding: 6px 12px; border-radius: 20px; cursor: pointer; font-size: 0.85rem; font-weight: 600; }
+        .header-actions { display: flex; gap: 6px; }
+        .admin-btn-style { background: rgba(255, 255, 255, 0.2) !important; }
 
-        .header-user-info { display: flex; flex-direction: column; }
-        .header-user-info .username { font-weight: bold; font-size: 1.05rem; }
-        .header-user-info .status { font-size: 0.75rem; color: #c1ece3; margin-top: 2px; }
+        /* --- PANTALLA 1: LISTA DE CHATS --- */
+        .chats-actions-bar { display: flex; gap: 8px; padding: 12px 16px; background: #f0f2f5; border-bottom: 1px solid #e1e1e1; }
+        .action-trigger-btn { flex: 1; padding: 10px; border: none; border-radius: 20px; background: white; color: #54656f; font-size: 0.88rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .action-trigger-btn:hover { background: #e9ebeb; color: var(--text-main); }
+        
+        .chats-scroll-list { flex: 1; overflow-y: auto; background: white; }
+        .chat-item-row { display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid #f0f2f5; cursor: pointer; transition: background 0.15s; }
+        .chat-item-row:hover { background: #f5f6f6; }
+        .chat-avatar { width: 45px; height: 45px; border-radius: 50%; background: #e9edef; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; margin-right: 14px; }
+        .chat-row-details { flex: 1; display: flex; flex-direction: column; }
+        .chat-row-title { font-weight: 600; color: var(--text-main); font-size: 1rem; }
+        .chat-row-meta { font-size: 0.78rem; color: #667781; margin-top: 3px; }
 
-        .chat-header button {
-            background: transparent;
-            border: none;
-            color: white;
-            padding: 6px 12px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 0.85rem;
-            font-weight: 600;
-        }
-        #admin-btn { background: rgba(255, 255, 255, 0.2); margin-right: 8px; }
-
-        /* Contenedor de Mensajes con textura sutil */
+        /* --- PANTALLA 2: SALA DE CHAT ACTIVO --- */
+        .chat-interface { background-color: var(--bg-chat); }
         .messages-container { 
-            flex: 1; 
-            padding: 16px; 
-            overflow-y: auto; 
-            display: flex; 
-            flex-direction: column; 
-            background-color: var(--bg-chat);
-            background-image: radial-gradient(rgba(0,0,0,0.04) 1px, transparent 0);
-            background-size: 24px 24px;
+            flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; 
+            background-image: radial-gradient(rgba(0,0,0,0.04) 1px, transparent 0); background-size: 24px 24px;
         }
 
-        /* Globos de Mensajes Estilo Burbuja */
-        .msg { 
-            max-width: 80%; 
-            padding: 8px 12px; 
-            margin-bottom: 8px; 
-            font-size: 0.93rem; 
-            line-height: 1.4; 
-            position: relative; 
-            word-break: break-word; 
-            box-shadow: 0 1px 1px rgba(0,0,0,0.12);
-            color: var(--text-main);
-        }
-
-        .msg-envio { 
-            background-color: var(--msg-sent); 
-            align-self: flex-end; 
-            border-radius: 8px 0px 8px 8px; 
-        }
-
-        .msg-recepcion { 
-            background-color: var(--msg-received); 
-            align-self: flex-start; 
-            border-radius: 0px 8px 8px 8px; 
-        }
-
+        /* Globos de Mensajes */
+        .msg { max-width: 80%; padding: 8px 12px; margin-bottom: 8px; font-size: 0.93rem; line-height: 1.4; position: relative; word-break: break-word; box-shadow: 0 1px 1px rgba(0,0,0,0.12); color: var(--text-main); }
+        .msg-envio { background-color: var(--msg-sent); align-self: flex-end; border-radius: 8px 0px 8px 8px; }
+        .msg-recepcion { background-color: var(--msg-received); align-self: flex-start; border-radius: 0px 8px 8px 8px; }
         .msg-meta { font-size: 0.78rem; color: #008069; font-weight: bold; display: block; margin-bottom: 2px; }
         .msg-time { font-size: 0.68rem; color: #667781; display: block; text-align: right; margin-top: 4px; }
 
-        /* Botones de acción en los mensajes (responder y eliminar) */
         .delete-btn { position: absolute; top: 4px; right: 6px; cursor: pointer; opacity: 0; transition: opacity 0.2s; font-size: 0.75rem; }
         .reply-btn { position: absolute; top: 4px; right: 24px; cursor: pointer; opacity: 0; transition: opacity 0.2s; font-size: 0.75rem; }
         .msg:hover .delete-btn, .msg:hover .reply-btn { opacity: 0.5; }
         .delete-btn:hover, .reply-btn:hover { opacity: 1 !important; }
 
-        /* Estilo del bloque citado DENTRO del mensaje */
-        .msg-quote {
-            background: rgba(0, 0, 0, 0.04);
-            border-left: 3px solid var(--wa-green-dark);
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.82rem;
-            margin-bottom: 6px;
-            color: #54656f;
-            display: block;
-        }
-        .msg-quote-user {
-            font-weight: bold;
-            color: var(--wa-green-dark);
-            display: block;
-            font-size: 0.76rem;
-            margin-bottom: 1px;
-        }
+        .msg-quote { background: rgba(0, 0, 0, 0.04); border-left: 3px solid var(--wa-green-dark); padding: 4px 8px; border-radius: 4px; font-size: 0.82rem; margin-bottom: 6px; color: #54656f; display: block; }
+        .msg-quote-user { font-weight: bold; color: var(--wa-green-dark); display: block; font-size: 0.76rem; margin-bottom: 1px; }
 
-        /* Barra de previsualización de respuesta (arriba de la barra de escribir) */
-        .reply-preview-box {
-            background-color: #f0f2f5;
-            border-left: 4px solid var(--wa-green-dark);
-            padding: 6px 14px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #e1e1e1;
-        }
-        .reply-preview-info {
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            max-width: 85%;
-        }
-        .reply-preview-user {
-            font-size: 0.8rem;
-            font-weight: bold;
-            color: var(--wa-green-dark);
-        }
-        .reply-preview-text {
-            font-size: 0.85rem;
-            color: #54656f;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .reply-preview-close {
-            cursor: pointer;
-            font-size: 1.2rem;
-            color: #667781;
-            font-weight: bold;
-            padding: 0 4px;
-        }
+        /* Barra Inferior */
+        .reply-preview-box { background-color: #f0f2f5; border-left: 4px solid var(--wa-green-dark); padding: 6px 14px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e1e1e1; }
+        .reply-preview-info { display: flex; flex-direction: column; overflow: hidden; max-width: 85%; }
+        .reply-preview-user { font-size: 0.8rem; font-weight: bold; color: var(--wa-green-dark); }
+        .reply-preview-text { font-size: 0.85rem; color: #54656f; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .reply-preview-close { cursor: pointer; font-size: 1.2rem; color: #667781; font-weight: bold; padding: 0 4px; }
 
-        /* Barra Inferior Elíptica */
-        .input-area { 
-            background-color: #f0f2f5; 
-            display: flex; 
-            align-items: center; 
-            padding: 8px 12px; 
-            gap: 10px;
-        }
-
-        .message-input { 
-            flex: 1; 
-            height: 42px; 
-            border-radius: 24px; 
-            border: none; 
-            padding: 0 18px; 
-            outline: none; 
-            font-size: 0.95rem;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.08);
-        }
-
+        .input-area { background-color: #f0f2f5; display: flex; align-items: center; padding: 8px 12px; gap: 10px; }
+        .message-input { flex: 1; height: 42px; border-radius: 24px; border: none; padding: 0 18px; outline: none; font-size: 0.95rem; box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
         .attach-btn { background: none; border: none; font-size: 1.35rem; cursor: pointer; color: #54656f; display: flex; align-items: center; transition: color 0.2s; }
         .attach-btn:hover { color: var(--wa-green-dark); }
-
-        .send-btn { 
-            background-color: var(--wa-green-dark); 
-            color: white; 
-            border: none; 
-            border-radius: 50%; 
-            width: 42px; 
-            height: 42px; 
-            cursor: pointer; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            font-size: 1rem; 
-            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-        }
+        .send-btn { background-color: var(--wa-green-dark); color: white; border: none; border-radius: 50%; width: 42px; height: 42px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
         .send-btn:hover { background-color: #006653; }
+
+        /* MODALES FLOTANTES (Crear Grupo / Iniciar DM) */
+        .custom-modal-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: flex; justify-content: center; align-items: flex-end; z-index: 100; }
+        .modal-card { width: 100%; background: white; border-radius: 12px 12px 0 0; padding: 20px; max-height: 80%; display: flex; flex-direction: column; box-shadow: 0 -4px 15px rgba(0,0,0,0.1); }
+        .modal-card h3 { color: var(--wa-green-dark); margin-bottom: 12px; font-size: 1.2rem; }
+        .modal-input { width: 100%; padding: 10px 14px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 6px; outline: none; font-size: 0.95rem; }
+        .users-checklist-box { flex: 1; overflow-y: auto; margin-bottom: 15px; max-height: 200px; }
+        .checklist-item { display: flex; align-items: center; padding: 10px 4px; border-bottom: 1px solid #f0f2f5; font-size: 1rem; cursor: pointer; }
+        .checklist-item input { margin-right: 12px; width: 18px; height: 18px; }
+        .modal-buttons { display: flex; gap: 10px; justify-content: flex-end; }
+        .modal-btn-cancel { padding: 10px 16px; background: #667781; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .modal-btn-action { padding: 10px 16px; background: var(--wa-green-dark); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
 
         /* Panel de Administración */
         .admin-interface { padding: 20px; display: flex; flex-direction: column; height: 100%; overflow-y: auto; background: #f0f2f5; }
         .admin-interface h2 { margin-bottom: 15px; color: var(--wa-green-dark); }
-        .user-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: white; margin-bottom: 8px; border-radius: 8px; border: none; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .user-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: white; margin-bottom: 8px; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
         .admin-section { margin-top: 25px; padding-top: 20px; border-top: 1px solid #ddd; }
         .admin-section h3 { margin-bottom: 10px; font-size: 1.1rem; color: #333; }
         .admin-section input { padding: 10px; margin-right: 5px; border: 1px solid #ccc; border-radius: 6px; outline: none; }
-        .admin-section button { padding: 10px 15px; background: var(--wa-green-dark); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
         .back-btn { margin-bottom: 15px; padding: 8px 14px; background: #667781; color: white; border: none; border-radius: 20px; cursor: pointer; align-self: flex-start; font-weight: bold; }
 
         .hidden { display: none !important; }
@@ -284,6 +163,7 @@
 </head>
 <body>
     <div class="container">
+        <!-- VISTA 1: CONTROL DE ACCESO -->
         <div id="login-container" class="login-box">
             <h2>Chat Familiar</h2>
             <p>Ingresa tu cuenta asignada para empezar a platicar</p>
@@ -293,15 +173,36 @@
             <div id="error" class="error-msg"></div>
         </div>
 
-        <div id="app" class="chat-interface hidden">
-            <div class="chat-header">
-                <div class="header-user-info">
-                    <span id="user-info" class="username">Cargando familiar...</span>
-                    <span class="status">• En línea</span>
+        <!-- VISTA 2: LISTA DE CHATS (GRUPOS Y INDIVIDUALES) -->
+        <div id="chats-list-view" class="view-layout hidden">
+            <div class="app-header">
+                <div class="title-area">
+                    <span class="main-title">Chat Familiar</span>
+                    <span id="chats-user-info" class="sub-title">Cargando...</span>
                 </div>
-                <div>
-                    <button id="admin-btn" class="hidden" onclick="abrirPanelAdmin()">⚙️ Admin</button>
+                <div class="header-actions">
+                    <button id="admin-btn" class="admin-btn-style hidden" onclick="abrirPanelAdmin()">⚙️ Admin</button>
                     <button onclick="logout()">Salir</button>
+                </div>
+            </div>
+            
+            <div class="chats-actions-bar">
+                <button id="btn-crear-grupo-view" class="action-trigger-btn hidden" onclick="abrirModalGrupo()">👥 Crear Grupo</button>
+                <button class="action-trigger-btn" onclick="abrirModalDM()">💬 Nuevo Mensaje</button>
+            </div>
+
+            <div id="lista-chats-items" class="chats-scroll-list"></div>
+        </div>
+
+        <!-- VISTA 3: SALA DE CHAT SELECCIONADO -->
+        <div id="chat-room-view" class="view-layout chat-interface hidden">
+            <div class="app-header">
+                <div class="title-area" style="flex-direction: row; align-items: center; gap: 10px;">
+                    <button onclick="volverAListaChats()" style="font-size: 1.2rem; padding: 4px 8px;">⬅</button>
+                    <div>
+                        <span id="active-chat-title" class="main-title">Nombre del Chat</span>
+                        <span id="active-chat-status" class="sub-title">• En línea</span>
+                    </div>
                 </div>
             </div>
             
@@ -327,8 +228,35 @@
             </div>
         </div>
 
+        <!-- MODAL: CREAR NUEVO GRUPO -->
+        <div id="modal-grupo" class="custom-modal-overlay hidden">
+            <div class="modal-card">
+                <h3>Crear Grupo Familiar</h3>
+                <input type="text" id="group-name-input" class="modal-input" placeholder="Nombre del grupo (ej: Primos, Asado...)">
+                <p style="font-size: 0.82rem; color: #667781; margin-bottom: 6px;">Selecciona los familiares:</p>
+                <div id="group-users-list" class="users-checklist-box"></div>
+                <div class="modal-buttons">
+                    <button class="modal-btn-cancel" onclick="cerrarModalGrupo()">Cancelar</button>
+                    <button class="modal-btn-action" onclick="crearGrupoConfirmar()">Crear</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL: NUEVO CHAT INDIVIDUAL -->
+        <div id="modal-dm" class="custom-modal-overlay hidden">
+            <div class="modal-card">
+                <h3>Iniciar Chat Privado</h3>
+                <p style="font-size: 0.82rem; color: #667781; margin-bottom: 10px;">Toca un familiar de la red para hablarle directamente:</p>
+                <div id="dm-users-list" class="users-checklist-box"></div>
+                <div class="modal-buttons">
+                    <button class="modal-btn-cancel" onclick="cerrarModalDM()">Cancelar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- VISTA 4: GESTIÓN DE USUARIOS (SÓLO SUPERADMIN) -->
         <div id="admin-panel" class="admin-interface hidden">
-            <button class="back-btn" onclick="volverAlApp()">⬅ Volver al Chat</button>
+            <button class="back-btn" onclick="volverAlAppDesdeAdmin()">⬅ Volver</button>
             <h2>Panel de Administración</h2>
             <div id="lista-usuarios"></div>
             
@@ -336,7 +264,7 @@
                 <h3>Modificar Nombre de Familiar</h3>
                 <input type="text" id="edit-usuario-actual" placeholder="Usuario actual">
                 <input type="text" id="edit-usuario-nuevo" placeholder="Nuevo nombre">
-                <button onclick="cambiarNombreFamiliar()">Actualizar Nombre</button>
+                <button onclick="cambiarNombreFamiliar()" style="padding: 10px 15px; background: var(--wa-green-dark); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">Actualizar Nombre</button>
                 <div id="admin-msg" style="margin-top: 10px; font-weight: bold;"></div>
             </div>
         </div>
