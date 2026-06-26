@@ -73,7 +73,6 @@ function mostrarPantallaSegunRol(user) {
 
     escucharListaDeChats();
 }
-
 function escucharListaDeChats() {
     if (unsubscribeChatsList) unsubscribeChatsList();
     listaIniciada = false; 
@@ -140,7 +139,6 @@ function escucharListaDeChats() {
         listaIniciada = true;
     });
 }
-
 async function abrirSalaChat(chatId, nombreChat, subetiqueta) {
     activeChatId = chatId;
     cancelarRespuesta();
@@ -223,7 +221,6 @@ async function abrirSalaChat(chatId, nombreChat, subetiqueta) {
         chatBox.scrollTop = chatBox.scrollHeight;
     });
 }
-
 async function login() {
     const usuario = document.getElementById("usuario").value;
     const password = document.getElementById("password").value;
@@ -308,7 +305,6 @@ window.abrirModalGrupo = async function() {
         console.error(e);
     }
 };
-
 window.cerrarModalGrupo = function() {
     document.getElementById("modal-grupo").classList.add("hidden");
     document.getElementById("group-name-input").value = "";
@@ -401,7 +397,6 @@ async function iniciarChatIndividual(otroUsuario) {
         console.error(e);
     }
 }
-
 window.abrirGaleria = function() { document.getElementById("gallery-input").click(); };
 window.abrirCamara = function() { document.getElementById("camera-input").click(); };
 
@@ -466,7 +461,6 @@ window.eliminarMensaje = async function(idDoc) {
         console.error(e);
     }
 };
-
 window.seleccionarRespuesta = function(id, texto, remitente) {
     replyTarget = { msgId: id, texto: texto, remitente: remitente };
     document.getElementById("reply-preview-user").innerText = `Respondiendo a ${remitente}`;
@@ -546,7 +540,6 @@ window.panelCambiarClave = async function(usuario) {
     if (!nuevaClave || !nuevaClave.trim()) return;
     try { await cambiarPasswordUsuario(usuario, nuevaClave); alert("Contraseña actualizada."); } catch(e) { alert(e.message); }
 };
-
 window.cambiarNombreFamiliar = async function() {
     const actual = document.getElementById("edit-usuario-actual").value;
     const nuevo = document.getElementById("edit-usuario-nuevo").value;
@@ -582,41 +575,24 @@ window.volverAlAppDesdeAdmin = function() {
     document.getElementById("chats-list-view").classList.remove("hidden");
 };
 
-window.login = async function(){
-    const usuario = document.getElementById("usuario").value;
-    const password = document.getElementById("password").value;
-    const error = document.getElementById("error");
-    error.innerText = "";
-
-    try {
-        const user = await loginUser(usuario, password);
-        currentUser = user;
-        localStorage.setItem("user", JSON.stringify(user));
-        mostrarPantallaSegunRol(user);
-    } catch(e) {
-        error.innerText = e.message;
-    }
-};
-
-window.logout = function(){
-    if (unsubscribeChatsList) unsubscribeChatsList();
-    if (unsubscribeChatMessages) unsubscribeChatMessages();
-    if (unsubscribeUsuariosAdmin) unsubscribeUsuariosAdmin(); 
-    localStorage.removeItem("user");
-    location.reload();
-};
-
+// ⌨️ ATAJOS DE TECLADO (Enter para mandar mensajes o loguear)
 document.addEventListener("keypress", function(e) {
-    if (e.key === "Enter" && document.activeElement === document.getElementById("msg-input")) {
-        enviarMensaje();
+    if (e.key === "Enter") {
+        if (document.activeElement === document.getElementById("msg-input")) {
+            enviarMensaje();
+        } else if (document.activeElement === document.getElementById("password") || document.activeElement === document.getElementById("usuario")) {
+            login();
+        }
     }
 });
 
-window.onload = async function(){
+// ⚡ INICIALIZACIÓN DIRECTA (Solución robusta para redes móviles)
+async function inicializarApp() {
     try { await verificarYCrearUsuarioDefecto(); } catch (err) {}
     const saved = localStorage.getItem("user");
     if (saved) {
         currentUser = JSON.parse(saved);
         mostrarPantallaSegunRol(currentUser);
     }
-};
+}
+inicializarApp();
