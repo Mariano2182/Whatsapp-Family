@@ -133,7 +133,7 @@ window.subirFoto = async function(elementoInput) {
     } catch (e) {
         console.error("Error en el envío hacia ImgBB:", e);
         alert("Hubo un problema al subir la foto de forma remota.");
-    } finaly {
+    } finally {
         msgInput.disabled = false;
         msgInput.placeholder = placeholderOriginal;
         elementoInput.value = ""; 
