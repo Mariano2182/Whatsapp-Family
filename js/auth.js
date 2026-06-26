@@ -9,29 +9,16 @@ export async function sha256(text) {
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-// Función para iniciar sesión
-import { db } from "./firebase.js";
-import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
-
-// Función para encriptar la contraseña
-export async function sha256(text) {
-    const msgBuffer = new TextEncoder().encode(text);
-    const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-// Función para iniciar sesión
+// Función para iniciar sesión buscando por campo
 export async function loginUser(usuario, password) {
-    
-    // 1. Aseguramos que 'usuario' sea un string antes de usar .trim()
+    // Aseguramos de que se valide como texto plano limpio
     const usuarioLimpio = (typeof usuario === 'string') ? usuario.trim() : String(usuario || "").trim();
     
     if (!usuarioLimpio) {
         throw new Error("El nombre de usuario no puede estar vacío");
     }
 
-    // 2. Creamos la consulta buscando por el campo 'usuario'
+    // Buscamos el documento donde el campo 'usuario' coincida con el input
     const q = query(collection(db, "usuarios"), where("usuario", "==", usuarioLimpio));
     const querySnapshot = await getDocs(q);
 
@@ -42,7 +29,7 @@ export async function loginUser(usuario, password) {
     const docSnap = querySnapshot.docs[0];
     const userData = docSnap.data();
 
-    // 3. Encriptamos y comparamos
+    // Encriptamos la contraseña ingresada y la comparamos con la guardada
     const hash = await sha256(password);
 
     if (userData.passwordHash !== hash) {
