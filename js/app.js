@@ -524,4 +524,99 @@ window.crearNuevoUsuarioAdmin = async function() {
     }
 
     try {
+        await registrarNuevoUsuario(usuario, password, rol);
+        adminRegMsg.style.color = "green";
+        adminRegMsg.innerText = `¡Familiar '${usuario}' registrado con éxito como ${rol}!`;
         
+        document.getElementById("reg-usuario").value = "";
+        document.getElementById("reg-password").value = "";
+    } catch (e) {
+        adminRegMsg.style.color = "red";
+        adminRegMsg.innerText = e.message;
+    }
+};
+
+window.panelDarBaja = async function(usuario) {
+    if (!confirm(`¿Estás seguro de dar de BAJA a '${usuario}'?`)) return;
+    try { await eliminarUsuario(usuario); alert("Usuario eliminado."); } catch(e) { alert(e.message); }
+};
+
+window.panelCambiarClave = async function(usuario) {
+    const nuevaClave = prompt(`Nueva contraseña para '${usuario}':`);
+    if (!nuevaClave || !nuevaClave.trim()) return;
+    try { await cambiarPasswordUsuario(usuario, nuevaClave); alert("Contraseña actualizada."); } catch(e) { alert(e.message); }
+};
+
+window.cambiarNombreFamiliar = async function() {
+    const actual = document.getElementById("edit-usuario-actual").value;
+    const nuevo = document.getElementById("edit-usuario-nuevo").value;
+    const adminMsg = document.getElementById("admin-msg");
+    adminMsg.innerText = "";
+
+    try {
+        const nombreFinal = await actualizarNombreUsuario(actual, nuevo);
+        adminMsg.style.color = "green";
+        adminMsg.innerText = `¡Cambiado con éxito!`;
+
+        if (currentUser.usuario === actual.trim().toLowerCase()) {
+            currentUser.usuario = nombreFinal;
+            localStorage.setItem("user", JSON.stringify(currentUser));
+        }
+        document.getElementById("edit-usuario-actual").value = "";
+        document.getElementById("edit-usuario-nuevo").value = "";
+    } catch (e) {
+        adminMsg.style.color = "red";
+        adminMsg.innerText = e.message;
+    }
+};
+
+window.abrirPanelAdmin = function() {
+    document.getElementById("chats-list-view").classList.add("hidden");
+    document.getElementById("admin-panel").classList.remove("hidden");
+    escucharUsuariosAdmin(); 
+};
+
+window.volverAlAppDesdeAdmin = function() {
+    if (unsubscribeUsuariosAdmin) unsubscribeUsuariosAdmin(); 
+    document.getElementById("admin-panel").classList.add("hidden");
+    document.getElementById("chats-list-view").classList.remove("hidden");
+};
+
+window.login = async function(){
+    const usuario = document.getElementById("usuario").value;
+    const password = document.getElementById("password").value;
+    const error = document.getElementById("error");
+    error.innerText = "";
+
+    try {
+        const user = await loginUser(usuario, password);
+        currentUser = user;
+        localStorage.setItem("user", JSON.stringify(user));
+        mostrarPantallaSegunRol(user);
+    } catch(e) {
+        error.innerText = e.message;
+    }
+};
+
+window.logout = function(){
+    if (unsubscribeChatsList) unsubscribeChatsList();
+    if (unsubscribeChatMessages) unsubscribeChatMessages();
+    if (unsubscribeUsuariosAdmin) unsubscribeUsuariosAdmin(); 
+    localStorage.removeItem("user");
+    location.reload();
+};
+
+document.addEventListener("keypress", function(e) {
+    if (e.key === "Enter" && document.activeElement === document.getElementById("msg-input")) {
+        enviarMensaje();
+    }
+});
+
+window.onload = async function(){
+    try { await verificarYCrearUsuarioDefecto(); } catch (err) {}
+    const saved = localStorage.getItem("user");
+    if (saved) {
+        currentUser = JSON.parse(saved);
+        mostrarPantallaSegunRol(currentUser);
+    }
+};
