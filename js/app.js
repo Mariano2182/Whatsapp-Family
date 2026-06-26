@@ -1,21 +1,35 @@
 import { db } from "./firebase.js";
-import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, deleteDoc, where, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 import { loginUser, verificarYCrearUsuarioDefecto, registrarNuevoUsuario, actualizarNombreUsuario, eliminarUsuario, cambiarPasswordUsuario } from "./auth.js";
 
 let currentUser = null;
-let unsubscribeChat = null;
-let unsubscribeUsuarios = null; 
-let replyTarget = null; 
+let activeChatId = null; 
 
+// Desuscriptores en tiempo real
+let unsubscribeChatsList = null;
+let unsubscribeChatMessages = null;
+let unsubscribeUsuariosAdmin = null; 
+
+let replyTarget = null; 
 const IMGBB_API_KEY = "4a52316c7553d2229d68717ee77998fa";
 
 function mostrarPantallaSegunRol(user) {
     document.getElementById("login-container").classList.add("hidden");
     document.getElementById("admin-panel").classList.add("hidden");
-    document.getElementById("app").classList.remove("hidden");
+    document.getElementById("chat-room-view").classList.add("hidden");
+    document.getElementById("chats-list-view").classList.remove("hidden");
 
-    document.getElementById("user-info").innerText = `Usuario: ${user.usuario} | Rol: ${user.rol}`;
+    document.getElementById("chats-user-info").innerText = `${user.usuario} (${user.rol})`;
 
+    // Solo Gri (admin) y Marian (superadmin) crean grupos
+    const btnCrearGrupo = document.getElementById("btn-crear-grupo-view");
+    if (user.rol === "superadmin" || user.rol === "admin") {
+        btnCrearGrupo.classList.remove("hidden");
+    } else {
+        btnCrearGrupo.classList.add("hidden");
+    }
+
+    // Solo superadmin ve la tuerca de administración general
     const adminBtn = document.getElementById("admin-btn");
     if (user.rol === "superadmin") {
         adminBtn.classList.remove("hidden");
@@ -23,21 +37,86 @@ function mostrarPantallaSegunRol(user) {
         adminBtn.classList.add("hidden");
     }
 
-    cargarChatEnTiempoReal();
+    escucharListaDeChats();
 }
 
-function cargarChatEnTiempoReal() {
-    if (unsubscribeChat) unsubscribeChat();
+// Carga la lista principal estilo WhatsApp (Grupos y Chats Privados ordenados por actividad reciente)
+function escucharListaDeChats() {
+    if (unsubscribeChatsList) unsubscribeChatsList();
 
-    const q = query(collection(db, "mensajes"), orderBy("fecha", "asc"));
+    const q = query(collection(db, "chats"), where("participantes", "array-contains", currentUser.usuario));
+
+    unsubscribeChatsList = onSnapshot(q, (snapshot) => {
+        const chatsArr = [];
+        snapshot.forEach((docSnap) => {
+            chatsArr.push({ id: docSnap.id, ...docSnap.data() });
+        });
+
+        // Ordenamos localmente por fecha del último mensaje para evitar requerir índices compuestos en Firebase
+        chatsArr.sort((a, b) => {
+            const tiempoA = a.ultimaFecha?.toDate ? a.ultimaFecha.toDate().getTime() : 0;
+            const tiempoB = b.ultimaFecha?.toDate ? b.ultimaFecha.toDate().getTime() : 0;
+            return tiempoB - tiempoA;
+        });
+
+        const listaBox = document.getElementById("lista-chats-items");
+        listaBox.innerHTML = "";
+
+        if (chatsArr.length === 0) {
+            listaBox.innerHTML = `<div style="text-align:center; color:#667781; margin-top:30px; font-size:0.9rem; padding: 20px;">No tienes chats activos.<br>¡Crea un grupo o inicia un chat individual arriba!</div>`;
+            return;
+        }
+
+        chatsArr.forEach((chat) => {
+            const divRow = document.createElement("div");
+            divRow.className = "chat-item-row";
+
+            let nombreMostrar = chat.nombre;
+            let icono = "👥";
+            let subetiqueta = "Grupo familiar";
+
+            if (chat.tipo === "individual") {
+                nombreMostrar = chat.participantes.find(p => p !== currentUser.usuario) || currentUser.usuario;
+                icono = "👤";
+                subetiqueta = "Chat privado";
+            }
+
+            divRow.onclick = () => abrirSalaChat(chat.id, nombreMostrar, subetiqueta);
+            
+            divRow.innerHTML = `
+                <div class="chat-avatar">${icono}</div>
+                <div class="chat-row-details">
+                    <span class="chat-row-title">${nombreMostrar}</span>
+                    <span class="chat-row-meta">${subetiqueta}</span>
+                </div>
+            `;
+            listaBox.appendChild(divRow);
+        });
+    });
+}
+
+// Abre la conversación elegida y carga sus mensajes específicos
+function abrirSalaChat(chatId, nombreChat, subetiqueta) {
+    activeChatId = chatId;
+    cancelarRespuesta();
+
+    document.getElementById("chats-list-view").classList.add("hidden");
+    document.getElementById("chat-room-view").classList.remove("hidden");
+    
+    document.getElementById("active-chat-title").innerText = nombreChat;
+    document.getElementById("active-chat-status").innerText = `• ${subetiqueta}`;
+
+    if (unsubscribeChatMessages) unsubscribeChatMessages();
+
+    const q = query(collection(db, "chats", chatId, "mensajes"), orderBy("fecha", "asc"));
     const chatBox = document.getElementById("chat-box");
 
-    unsubscribeChat = onSnapshot(q, (snapshot) => {
-        chatBox.innerHTML = ""; 
+    unsubscribeChatMessages = onSnapshot(q, (snapshot) => {
+        chatBox.innerHTML = "";
 
         snapshot.forEach((docSnap) => {
             const datos = docSnap.data();
-            const idDoc = docSnap.id; 
+            const idDoc = docSnap.id;
             const divMensaje = document.createElement("div");
 
             if (datos.remitente === currentUser.usuario) {
@@ -46,18 +125,10 @@ function cargarChatEnTiempoReal() {
                 divMensaje.className = "msg msg-recepcion";
             }
 
-            let horaFormateada = "";
-            let fechaMensaje = null;
-
-            if (datos.fecha && typeof datos.fecha.toDate === "function") {
-                fechaMensaje = datos.fecha.toDate();
-            } else {
-                fechaMensaje = new Date();
-            }
-
+            let fechaMensaje = datos.fecha?.toDate ? datos.fecha.toDate() : new Date();
             const horas = String(fechaMensaje.getHours()).padStart(2, '0');
-            const minutes = String(fechaMensaje.getMinutes()).padStart(2, '0');
-            horaFormateada = `${horas}:${minutes}`;
+            const minutos = String(fechaMensaje.getMinutes()).padStart(2, '0');
+            let horaFormateada = `${horas}:${minutos}`;
 
             const esMio = datos.remitente === currentUser.usuario;
             const esSuperAdmin = currentUser.rol === "superadmin";
@@ -67,7 +138,6 @@ function cargarChatEnTiempoReal() {
                 botonBorrar = `<span class="delete-btn" onclick="eliminarMensaje('${idDoc}')" title="Eliminar mensaje">🗑️</span>`;
             }
 
-            // Sanitizar texto para previsualización en respuestas citas
             let textoPreview = "📝 Mensaje";
             if (datos.texto) {
                 textoPreview = datos.texto.replace(/'/g, "\\'").replace(/"/g, '&quot;');
@@ -89,7 +159,7 @@ function cargarChatEnTiempoReal() {
 
             let contenidoMensaje = "";
             if (datos.imagenUrl) {
-                contenidoMensaje = `<img src="${datos.imagenUrl}" style="max-width: 100%; max-height: 220px; border-radius: 6px; display: block; margin-top: 5px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" onclick="window.open('${datos.imagenUrl}', '_blank')" title="Ver en tamaño completo">`;
+                contenidoMensaje = `<img src="${datos.imagenUrl}" style="max-width: 100%; max-height: 220px; border-radius: 6px; display: block; margin-top: 5px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" onclick="window.open('${datos.imagenUrl}', '_blank')">`;
             } else {
                 contenidoMensaje = `<span style="display:block;">${datos.texto}</span>`;
             }
@@ -109,28 +179,170 @@ function cargarChatEnTiempoReal() {
     });
 }
 
-// Funciones para disparar visualmente los inputs ocultos
-window.abrirGaleria = function() {
-    document.getElementById("gallery-input").click();
+window.volverAListaChats = function() {
+    if (unsubscribeChatMessages) unsubscribeChatMessages();
+    activeChatId = null;
+    document.getElementById("chat-room-view").classList.add("hidden");
+    document.getElementById("chats-list-view").classList.remove("hidden");
+    escucharListaDeChats();
 };
 
-window.abrirCamara = function() {
-    document.getElementById("camera-input").click();
+// --- MODAL CREAR GRUPO ---
+window.abrirModalGrupo = async function() {
+    const listContainer = document.getElementById("group-users-list");
+    listContainer.innerHTML = "<p style='padding:10px;'>Cargando red familiar...</p>";
+    document.getElementById("modal-grupo").classList.remove("hidden");
+
+    try {
+        const snap = await getDocs(collection(db, "usuarios"));
+        listContainer.innerHTML = "";
+        snap.forEach(docSnap => {
+            const u = docSnap.data().usuario;
+            if (u !== currentUser.usuario) {
+                const item = document.createElement("label");
+                item.className = "checklist-item";
+                item.innerHTML = `<input type="checkbox" class="group-user-checkbox" value="${u}"> <span>${u}</span>`;
+                listContainer.appendChild(item);
+            }
+        });
+    } catch(e) {
+        console.error(e);
+    }
 };
 
-// Sube el archivo seleccionado (venga de la galería o de la cámara directa) a ImgBB
+window.cerrarModalGrupo = function() {
+    document.getElementById("modal-grupo").classList.add("hidden");
+    document.getElementById("group-name-input").value = "";
+};
+
+window.crearGrupoConfirmar = async function() {
+    const nameInput = document.getElementById("group-name-input").value.trim();
+    if (!nameInput) return alert("Por favor, escribe un nombre para el grupo.");
+
+    const checkboxes = document.querySelectorAll(".group-user-checkbox:checked");
+    const participantes = [currentUser.usuario];
+    checkboxes.forEach(cb => participantes.push(cb.value));
+
+    if (participantes.length < 2) return alert("Selecciona al menos a un integrante para armar el grupo.");
+
+    try {
+        const nuevoGrupo = {
+            tipo: "grupo",
+            nombre: nameInput,
+            participantes: participantes,
+            creador: currentUser.usuario,
+            ultimaFecha: serverTimestamp()
+        };
+
+        const docRef = await addDoc(collection(db, "chats"), nuevoGrupo);
+        cerrarModalGrupo();
+        abrirSalaChat(docRef.id, nameInput, "Grupo familiar");
+    } catch(e) {
+        alert("Error al crear el grupo.");
+    }
+};
+
+// --- MODAL CHAT INDIVIDUAL (DM) ---
+window.abrirModalDM = async function() {
+    const listContainer = document.getElementById("dm-users-list");
+    listContainer.innerHTML = "<p style='padding:10px;'>Cargando familiares...</p>";
+    document.getElementById("modal-dm").classList.remove("hidden");
+
+    try {
+        const snap = await getDocs(collection(db, "usuarios"));
+        listContainer.innerHTML = "";
+        snap.forEach(docSnap => {
+            const u = docSnap.data().usuario;
+            if (u !== currentUser.usuario) {
+                const item = document.createElement("div");
+                item.className = "checklist-item";
+                item.style.fontWeight = "600";
+                item.innerText = `👤 ${u}`;
+                item.onclick = () => iniciarChatIndividual(u);
+                listContainer.appendChild(item);
+            }
+        });
+    } catch(e) {
+        console.error(e);
+    }
+};
+
+window.cerrarModalDM = function() {
+    document.getElementById("modal-dm").classList.add("hidden");
+};
+
+// Revisa si ya existía un chat privado con ese familiar para abrirlo, o crea uno nuevo de cero
+async function iniciarChatIndividual(otroUsuario) {
+    cerrarModalDM();
+    
+    try {
+        const q = query(collection(db, "chats"), where("tipo", "==", "individual"), where("participantes", "array-contains", currentUser.usuario));
+        const snapshot = await getDocs(q);
+        let chatExistenteId = null;
+
+        snapshot.forEach(docSnap => {
+            const data = docSnap.data();
+            if (data.participantes.includes(otroUsuario)) {
+                chatExistenteId = docSnap.id;
+            }
+        });
+
+        if (chatExistenteId) {
+            abrirSalaChat(chatExistenteId, otroUsuario, "Chat privado");
+        } else {
+            const nuevoChatPrivado = {
+                tipo: "individual",
+                nombre: "",
+                participantes: [currentUser.usuario, otroUsuario],
+                ultimaFecha: serverTimestamp()
+            };
+            const docRef = await addDoc(collection(db, "chats"), nuevoChatPrivado);
+            abrirSalaChat(docRef.id, otroUsuario, "Chat privado");
+        }
+    } catch(e) {
+        console.error("Error al iniciar chat individual:", e);
+    }
+}
+
+// --- ENVÍO DE MENSAJES Y FOTOS ---
+window.enviarMensaje = async function() {
+    const input = document.getElementById("msg-input");
+    const texto = input.value.trim();
+    if (!texto || !activeChatId) return;
+
+    try {
+        const nuevoMensaje = {
+            texto: texto,
+            remitente: currentUser.usuario,
+            fecha: serverTimestamp()
+        };
+
+        if (replyTarget) nuevoMensaje.replyTo = replyTarget;
+
+        input.value = "";
+        cancelarRespuesta();
+
+        await addDoc(collection(db, "chats", activeChatId, "mensajes"), nuevoMensaje);
+        await updateDoc(doc(db, "chats", activeChatId), { ultimaFecha: serverTimestamp() });
+    } catch (e) {
+        console.error("Error enviando texto:", e);
+    }
+};
+
+window.abrirGaleria = function() { document.getElementById("gallery-input").click(); };
+window.abrirCamara = function() { document.getElementById("camera-input").click(); };
+
 window.subirFoto = async function(elementoInput) {
     const archivo = elementoInput.files[0];
-    if (!archivo) return;
+    if (!archivo || !activeChatId) return;
 
     if (!archivo.type.startsWith("image/")) {
-        alert("Por favor, selecciona únicamente archivos de imagen (PNG, JPG, GIF).");
+        alert("Por favor, selecciona únicamente archivos de imagen.");
         return;
     }
 
     const msgInput = document.getElementById("msg-input");
     const placeholderOriginal = msgInput.placeholder;
-    
     msgInput.disabled = true;
     msgInput.placeholder = "Subiendo imagen familiar... ⏳";
 
@@ -142,12 +354,10 @@ window.subirFoto = async function(elementoInput) {
             method: "POST",
             body: formData
         });
-
         const resultado = await respuesta.json();
 
         if (resultado.success) {
             const URLPublica = resultado.data.url;
-
             const nuevoMensaje = {
                 texto: "",
                 imagenUrl: URLPublica,
@@ -155,23 +365,29 @@ window.subirFoto = async function(elementoInput) {
                 fecha: serverTimestamp()
             };
 
-            if (replyTarget) {
-                nuevoMensaje.replyTo = replyTarget;
-            }
+            if (replyTarget) nuevoMensaje.replyTo = replyTarget;
 
-            await addDoc(collection(db, "mensajes"), nuevoMensaje);
             cancelarRespuesta();
+            await addDoc(collection(db, "chats", activeChatId, "mensajes"), nuevoMensaje);
+            await updateDoc(doc(db, "chats", activeChatId), { ultimaFecha: serverTimestamp() });
         } else {
-            throw new Error("El servidor de ImgBB rechazó la imagen.");
+            throw new Error();
         }
-
     } catch (e) {
-        console.error("Error en el envío hacia ImgBB:", e);
-        alert("Hubo un problema al subir la foto de forma remota.");
+        alert("Hubo un problema al subir la foto.");
     } finally {
         msgInput.disabled = false;
         msgInput.placeholder = placeholderOriginal;
-        elementoInput.value = ""; // Resetea el input para permitir subir la misma foto consecutivamente
+        elementoInput.value = ""; 
+    }
+};
+
+window.eliminarMensaje = async function(idDoc) {
+    if (!confirm("¿Quieres eliminar este mensaje para todos?")) return;
+    try {
+        await deleteDoc(doc(db, "chats", activeChatId, "mensajes", idDoc));
+    } catch (e) {
+        console.error(e);
     }
 };
 
@@ -188,20 +404,19 @@ window.cancelarRespuesta = function() {
     document.getElementById("reply-preview-box").classList.add("hidden");
 };
 
+// --- GESTIÓN DE ADMINISTRACIÓN (SUPERADMIN) ---
 function escucharUsuariosAdmin() {
-    if (unsubscribeUsuarios) unsubscribeUsuarios();
+    if (unsubscribeUsuariosAdmin) unsubscribeUsuariosAdmin();
     const listaBox = document.getElementById("lista-usuarios");
 
-    unsubscribeUsuarios = onSnapshot(collection(db, "usuarios"), (snapshot) => {
+    unsubscribeUsuariosAdmin = onSnapshot(collection(db, "usuarios"), (snapshot) => {
         listaBox.innerHTML = "";
-
         snapshot.forEach((docSnap) => {
             const u = docSnap.data();
             const divItem = document.createElement("div");
             divItem.className = "user-item";
 
             let botonesAccion = "";
-            
             if (u.usuario !== "marian") {
                 botonesAccion = `
                     <div>
@@ -220,63 +435,31 @@ function escucharUsuariosAdmin() {
 }
 
 window.panelDarBaja = async function(usuario) {
-    const confirmar = confirm(`¿Estás seguro de dar de BAJA a '${usuario}'? No podrá volver a ingresar.`);
-    if (!confirmar) return;
-
-    try {
-        await eliminarUsuario(usuario);
-        alert(`La cuenta de '${usuario}' fue removida del sistema.`);
-    } catch(e) {
-        alert(e.message);
-    }
+    if (!confirm(`¿Estás seguro de dar de BAJA a '${usuario}'?`)) return;
+    try { await eliminarUsuario(usuario); alert("Usuario eliminado."); } catch(e) { alert(e.message); }
 };
 
 window.panelCambiarClave = async function(usuario) {
-    const nuevaClave = prompt(`Escribe la nueva contraseña para '${usuario}':`);
-    if (nuevaClave === null) return;
-    
-    if (!nuevaClave.trim()) {
-        alert("La contraseña no puede estar vacía.");
-        return;
-    }
-
-    try {
-        await cambiarPasswordUsuario(usuario, nuevaClave);
-        alert(`¡Contraseña de '${usuario}' cambiada con éxito!`);
-    } catch(e) {
-        alert(e.message);
-    }
-};
-
-window.eliminarMensaje = async function(idDoc) {
-    const confirmar = confirm("¿Quieres eliminar este mensaje para todos?");
-    if (!confirmar) return;
-
-    try {
-        await deleteDoc(doc(db, "mensajes", idDoc));
-    } catch (e) {
-        console.error("Error al borrar el documento:", e);
-    }
+    const nuevaClave = prompt(`Nueva contraseña para '${usuario}':`);
+    if (!nuevaClave || !nuevaClave.trim()) return;
+    try { await cambiarPasswordUsuario(usuario, nuevaClave); alert("Contraseña actualizada."); } catch(e) { alert(e.message); }
 };
 
 window.cambiarNombreFamiliar = async function() {
     const actual = document.getElementById("edit-usuario-actual").value;
     const nuevo = document.getElementById("edit-usuario-nuevo").value;
     const adminMsg = document.getElementById("admin-msg");
-
     adminMsg.innerText = "";
 
     try {
         const nombreFinal = await actualizarNombreUsuario(actual, nuevo);
         adminMsg.style.color = "green";
-        adminMsg.innerText = `¡Cambiado con éxito de '${actual}' a '${nombreFinal}'!`;
+        adminMsg.innerText = `¡Cambiado con éxito!`;
 
         if (currentUser.usuario === actual.trim().toLowerCase()) {
             currentUser.usuario = nombreFinal;
             localStorage.setItem("user", JSON.stringify(currentUser));
-            document.getElementById("user-info").innerText = `Usuario: ${currentUser.usuario} | Rol: ${currentUser.rol}`;
         }
-
         document.getElementById("edit-usuario-actual").value = "";
         document.getElementById("edit-usuario-nuevo").value = "";
     } catch (e) {
@@ -285,31 +468,19 @@ window.cambiarNombreFamiliar = async function() {
     }
 };
 
-window.enviarMensaje = async function() {
-    const input = document.getElementById("msg-input");
-    const texto = input.value.trim();
-
-    if (!texto) return;
-
-    try {
-        const nuevoMensaje = {
-            texto: texto,
-            remitente: currentUser.usuario,
-            fecha: serverTimestamp()
-        };
-
-        if (replyTarget) {
-            nuevoMensaje.replyTo = replyTarget;
-        }
-
-        await addDoc(collection(db, "mensajes"), nuevoMensaje);
-        input.value = "";
-        cancelarRespuesta(); 
-    } catch (e) {
-        console.error("Error enviando texto:", e);
-    }
+window.abrirPanelAdmin = function() {
+    document.getElementById("chats-list-view").classList.add("hidden");
+    document.getElementById("admin-panel").classList.remove("hidden");
+    escucharUsuariosAdmin(); 
 };
 
+window.volverAlAppDesdeAdmin = function() {
+    if (unsubscribeUsuariosAdmin) unsubscribeUsuariosAdmin(); 
+    document.getElementById("admin-panel").classList.add("hidden");
+    document.getElementById("chats-list-view").classList.remove("hidden");
+};
+
+// --- LOGIN & INICIALIZACIÓN ---
 window.login = async function(){
     const usuario = document.getElementById("usuario").value;
     const password = document.getElementById("password").value;
@@ -327,25 +498,11 @@ window.login = async function(){
 };
 
 window.logout = function(){
-    if (unsubscribeChat) unsubscribeChat();
-    if (unsubscribeUsuarios) unsubscribeUsuarios(); 
+    if (unsubscribeChatsList) unsubscribeChatsList();
+    if (unsubscribeChatMessages) unsubscribeChatMessages();
+    if (unsubscribeUsuariosAdmin) unsubscribeUsuariosAdmin(); 
     localStorage.removeItem("user");
     location.reload();
-};
-
-window.abrirPanelAdmin = function() {
-    document.getElementById("app").classList.add("hidden");
-    document.getElementById("admin-panel").classList.remove("hidden");
-    document.getElementById("admin-msg").innerText = "";
-    escucharUsuariosAdmin(); 
-};
-
-window.volverAlApp = function() {
-    if (unsubscribeUsuarios) unsubscribeUsuarios(); 
-    document.getElementById("admin-panel").classList.add("hidden");
-    document.getElementById("app").classList.remove("hidden");
-    const chatBox = document.getElementById("chat-box");
-    chatBox.scrollTop = chatBox.scrollHeight;
 };
 
 document.addEventListener("keypress", function(e) {
@@ -355,16 +512,10 @@ document.addEventListener("keypress", function(e) {
 });
 
 window.onload = async function(){
-    try {
-        await verificarYCrearUsuarioDefecto();
-    } catch (err) {
-        console.error("Error al inicializar datos:", err);
-    }
-
+    try { await verificarYCrearUsuarioDefecto(); } catch (err) {}
     const saved = localStorage.getItem("user");
     if (saved) {
-        const user = JSON.parse(saved);
-        currentUser = user;
-        mostrarPantallaSegunRol(user);
+        currentUser = JSON.parse(saved);
+        mostrarPantallaSegunRol(currentUser);
     }
 };
