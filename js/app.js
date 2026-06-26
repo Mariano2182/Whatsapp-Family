@@ -6,6 +6,9 @@ let currentUser = null;
 let unsubscribeChat = null;
 let unsubscribeUsuarios = null; 
 
+// 🔑 Tu clave API de ImgBB asignada y lista para funcionar
+const IMGBB_API_KEY = "4a52316c7553d2229d68717ee77998fa";
+
 function mostrarPantallaSegunRol(user) {
     document.getElementById("login-container").classList.add("hidden");
     document.getElementById("admin-panel").classList.add("hidden");
@@ -61,12 +64,19 @@ function cargarChatEnTiempoReal() {
 
             let botonBorrar = "";
             if (esMio || esSuperAdmin) {
-                botonBorrar = `<span class="delete-btn" onclick="eliminarMensaje('${idDoc}')" title="Eliminar para todos">🗑️</span>`;
+                botonBorrar = `<span class="delete-btn" onclick="eliminarMensaje('${idDoc}')" title="Eliminar mensaje">🗑️</span>`;
+            }
+
+            let contenidoMensaje = "";
+            if (datos.imagenUrl) {
+                contenidoMensaje = `<img src="${datos.imagenUrl}" style="max-width: 100%; max-height: 220px; border-radius: 6px; display: block; margin-top: 5px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" onclick="window.open('${datos.imagenUrl}', '_blank')" title="Ver en tamaño completo">`;
+            } else {
+                contenidoMensaje = `<span style="display:block;">${datos.texto}</span>`;
             }
 
             divMensaje.innerHTML = `
                 <span class="msg-meta">${datos.remitente}</span> 
-                <span style="display:block;">${datos.texto}</span>
+                ${contenidoMensaje}
                 <span class="msg-time">${horaFormateada}</span>
                 ${botonBorrar}
             `;
@@ -77,7 +87,59 @@ function cargarChatEnTiempoReal() {
     });
 }
 
-// MODIFICADO: Aplica el escudo visual a 'marian' en la lista en tiempo real
+window.seleccionarFoto = function() {
+    document.getElementById("file-input").click();
+};
+
+window.subirFoto = async function(elementoInput) {
+    const archivo = elementoInput.files[0];
+    if (!archivo) return;
+
+    if (!archivo.type.startsWith("image/")) {
+        alert("Por favor, selecciona únicamente archivos de imagen (PNG, JPG, GIF).");
+        return;
+    }
+
+    const msgInput = document.getElementById("msg-input");
+    const placeholderOriginal = msgInput.placeholder;
+    
+    msgInput.disabled = true;
+    msgInput.placeholder = "Subiendo imagen familiar... ⏳";
+
+    try {
+        const formData = new FormData();
+        formData.append("image", archivo);
+
+        const respuesta = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+            method: "POST",
+            body: formData
+        });
+
+        const resultado = await respuesta.json();
+
+        if (resultado.success) {
+            const URLPublica = resultado.data.url;
+
+            await addDoc(collection(db, "mensajes"), {
+                texto: "",
+                imagenUrl: URLPublica,
+                remitente: currentUser.usuario,
+                fecha: serverTimestamp()
+            });
+        } else {
+            throw new Error("El servidor de ImgBB rechazó la imagen.");
+        }
+
+    } catch (e) {
+        console.error("Error en el envío hacia ImgBB:", e);
+        alert("Hubo un problema al subir la foto de forma remota.");
+    } finaly {
+        msgInput.disabled = false;
+        msgInput.placeholder = placeholderOriginal;
+        elementoInput.value = ""; 
+    }
+};
+
 function escucharUsuariosAdmin() {
     if (unsubscribeUsuarios) unsubscribeUsuarios();
     const listaBox = document.getElementById("lista-usuarios");
@@ -92,7 +154,6 @@ function escucharUsuariosAdmin() {
 
             let botonesAccion = "";
             
-            // MODIFICADO: El escudo ahora protege a 'marian'
             if (u.usuario !== "marian") {
                 botonesAccion = `
                     <div>
@@ -111,42 +172,42 @@ function escucharUsuariosAdmin() {
 }
 
 window.panelDarBaja = async function(usuario) {
-    const confirmar = confirm(`¿Estás completamente seguro de dar de BAJA la cuenta de '${usuario}'? No podrá volver a loguearse.`);
+    const confirmar = confirm(`¿Estás seguro de dar de BAJA a '${usuario}'? No podrá volver a ingresar.`);
     if (!confirmar) return;
 
     try {
         await eliminarUsuario(usuario);
-        alert(`La cuenta de '${usuario}' fue eliminada del sistema con éxito.`);
+        alert(`La cuenta de '${usuario}' fue removida del sistema.`);
     } catch(e) {
         alert(e.message);
     }
 };
 
 window.panelCambiarClave = async function(usuario) {
-    const nuevaClave = prompt(`Escribe la NUEVA CONTRASEÑA para el familiar '${usuario}':`);
+    const nuevaClave = prompt(`Escribe la nueva contraseña para '${usuario}':`);
     if (nuevaClave === null) return;
     
     if (!nuevaClave.trim()) {
-        alert("Error: La contraseña no puede estar en blanco.");
+        alert("La contraseña no puede estar vacía.");
         return;
     }
 
     try {
         await cambiarPasswordUsuario(usuario, nuevaClave);
-        alert(`¡Contraseña de '${usuario}' actualizada e encriptada correctamente!`);
+        alert(`¡Contraseña de '${usuario}' cambiada con éxito!`);
     } catch(e) {
         alert(e.message);
     }
 };
 
 window.eliminarMensaje = async function(idDoc) {
-    const confirmar = confirm("¿Estás seguro de que quieres eliminar este mensaje para todos?");
+    const confirmar = confirm("¿Quieres eliminar este mensaje para todos?");
     if (!confirmar) return;
 
     try {
         await deleteDoc(doc(db, "mensajes", idDoc));
     } catch (e) {
-        console.error("Error al eliminar el mensaje:", e);
+        console.error("Error al borrar el documento:", e);
     }
 };
 
@@ -160,7 +221,7 @@ window.cambiarNombreFamiliar = async function() {
     try {
         const nombreFinal = await actualizarNombreUsuario(actual, nuevo);
         adminMsg.style.color = "green";
-        adminMsg.innerText = `¡Éxito! Se cambió el nombre de '${actual}' a '${nombreFinal}'.`;
+        adminMsg.innerText = `¡Cambiado con éxito de '${actual}' a '${nombreFinal}'!`;
 
         if (currentUser.usuario === actual.trim().toLowerCase()) {
             currentUser.usuario = nombreFinal;
@@ -190,7 +251,7 @@ window.enviarMensaje = async function() {
         });
         input.value = "";
     } catch (e) {
-        console.error("Error al enviar mensaje:", e);
+        console.error("Error enviando texto:", e);
     }
 };
 
