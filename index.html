@@ -1,39 +1,31 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Chat Familiar</title>
-
-<link rel="stylesheet" href="css/style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Familiar</title>
+    <link rel="stylesheet" href="css/style.css">
 </head>
-
 <body>
 
-<div id="login-container" class="login-container">
+    <div id="login-container" class="login-container">
+        <h2>Chat Familiar</h2>
 
-    <h2>Chat Familiar</h2>
+        <input type="text" id="usuario" placeholder="Usuario">
+        <input type="password" id="password" placeholder="Contraseña">
 
-    <input type="text" id="usuarios" placeholder="Usuarios">
-    <input type="password" id="password" placeholder="Contraseña">
+        <button onclick="login()">Ingresar</button>
 
-    <button onclick="login()">Ingresar</button>
+        <p id="error" style="color: red; font-weight: bold;"></p>
+    </div>
 
-    <p id="error"></p>
+    <div id="app" class="hidden">
+        <h1>Bienvenido 👋</h1>
+        <p id="user-info"></p>
+        <button onclick="logout()">Cerrar sesión</button>
+    </div>
 
-</div>
-
-<div id="app" class="hidden">
-
-    <h1>Bienvenido 👋</h1>
-
-    <p id="user-info"></p>
-
-    <button onclick="logout()">Cerrar sesión</button>
-
-</div>
-
-<script type="module" src="js/app.js"></script>
+    <script type="module" src="js/app.js"></script>
 
 </body>
 </html>
