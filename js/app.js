@@ -1,11 +1,11 @@
 import { db } from "./firebase.js";
-import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+// MODIFICADO: Se agregan 'doc' y 'deleteDoc' a las herramientas de Firestore
+import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 import { loginUser, verificarYCrearUsuarioDefecto, registrarNuevoUsuario } from "./auth.js";
 
 let currentUser = null;
-let unsubscribeChat = null; // Guardará el escuchador activo del chat
+let unsubscribeChat = null;
 
-// Controla qué elementos gráficos mostrar basados en los permisos y activa el chat
 function mostrarPantallaSegunRol(user) {
     document.getElementById("login-container").classList.add("hidden");
     document.getElementById("admin-panel").classList.add("hidden");
@@ -13,7 +13,6 @@ function mostrarPantallaSegunRol(user) {
 
     document.getElementById("user-info").innerText = `Usuario: ${user.usuario} | Rol: ${user.rol}`;
 
-    // FILTRO DE SEGURIDAD: Revelar el botón secreto si eres superadmin
     const adminBtn = document.getElementById("admin-btn");
     if (user.rol === "superadmin") {
         adminBtn.classList.remove("hidden");
@@ -21,56 +20,75 @@ function mostrarPantallaSegunRol(user) {
         adminBtn.classList.add("hidden");
     }
 
-    // ACTIVAR EL CHAT EN TIEMPO REAL
     cargarChatEnTiempoReal();
 }
 
-// ESCUCHADOR ACTIVO: Trae los mensajes de Firebase ordenados por tiempo
 function cargarChatEnTiempoReal() {
-    // Si ya había un escuchador prendido, lo apagamos para no duplicar
     if (unsubscribeChat) unsubscribeChat();
 
     const q = query(collection(db, "mensajes"), orderBy("fecha", "asc"));
     const chatBox = document.getElementById("chat-box");
 
     unsubscribeChat = onSnapshot(q, (snapshot) => {
-        chatBox.innerHTML = ""; // Limpiamos la caja para refrescar los datos
+        chatBox.innerHTML = ""; 
 
-        snapshot.forEach((doc) => {
-            const datos = doc.data();
+        // Renombramos la variable a docSnap para evitar conflicto con la función doc() de Firebase
+        snapshot.forEach((docSnap) => {
+            const datos = docSnap.data();
+            const idDoc = docSnap.id; // Obtenemos el ID único del mensaje
             const divMensaje = document.createElement("div");
 
-            // Si el mensaje lo envió el usuario actual, va a la derecha (verde), si no a la izquierda (blanco)
             if (datos.remitente === currentUser.usuario) {
                 divMensaje.className = "msg msg-envio";
             } else {
                 divMensaje.className = "msg msg-recepcion";
             }
 
-            // Estructura interna de la burbuja (Nombre arriba y texto abajo)
-            divMensaje.innerHTML = `<span class="msg-meta">${datos.remitente}</span> ${datos.texto}`;
+            // REGLA DE BORRADO: ¿Es mi mensaje o soy el superadmin de la red?
+            const esMio = datos.remitente === currentUser.usuario;
+            const esSuperAdmin = currentUser.rol === "superadmin";
+
+            let botonBorrar = "";
+            if (esMio || esSuperAdmin) {
+                // Si cumple la condición, le inyectamos la papelera vinculada al ID del mensaje
+                botonBorrar = `<span class="delete-btn" onclick="eliminarMensaje('${idDoc}')" title="Eliminar para todos">🗑️</span>`;
+            }
+
+            divMensaje.innerHTML = `<span class="msg-meta">${datos.remitente}</span> ${datos.texto} ${botonBorrar}`;
             chatBox.appendChild(divMensaje);
         });
 
-        // Auto-scroll hacia abajo para ver el último mensaje enviado
         chatBox.scrollTop = chatBox.scrollHeight;
     });
 }
 
-// FUNCIÓN PARA ENVIAR MENSAJE A FIREBASE
+// NUEVA FUNCIÓN GLOBAL: Elimina el mensaje físicamente de la base de datos
+window.eliminarMensaje = async function(idDoc) {
+    const confirmar = confirm("¿Estás seguro de que quieres eliminar este mensaje para todos?");
+    if (!confirmar) return;
+
+    try {
+        // Ejecuta el borrado directo en la colección 'mensajes' apuntando al idDoc
+        await deleteDoc(doc(db, "mensajes", idDoc));
+    } catch (e) {
+        console.error("Error al eliminar el mensaje:", e);
+        alert("No se pudo eliminar el mensaje. Revisa los permisos.");
+    }
+};
+
 window.enviarMensaje = async function() {
     const input = document.getElementById("msg-input");
     const texto = input.value.trim();
 
-    if (!texto) return; // Evita enviar mensajes vacíos
+    if (!texto) return;
 
     try {
         await addDoc(collection(db, "mensajes"), {
             texto: texto,
             remitente: currentUser.usuario,
-            fecha: serverTimestamp() // Hora exacta del servidor de Firebase
+            fecha: serverTimestamp()
         });
-        input.value = ""; // Limpiamos el input de texto
+        input.value = "";
     } catch (e) {
         console.error("Error al enviar mensaje:", e);
     }
@@ -93,7 +111,7 @@ window.login = async function(){
 };
 
 window.logout = function(){
-    if (unsubscribeChat) unsubscribeChat(); // Apaga el chat antes de salir
+    if (unsubscribeChat) unsubscribeChat();
     localStorage.removeItem("user");
     location.reload();
 };
@@ -107,7 +125,6 @@ window.abrirPanelAdmin = function() {
 window.volverAlApp = function() {
     document.getElementById("admin-panel").classList.add("hidden");
     document.getElementById("app").classList.remove("hidden");
-    // Al volver, recalculamos el scroll del chat
     const chatBox = document.getElementById("chat-box");
     chatBox.scrollTop = chatBox.scrollHeight;
 };
@@ -132,7 +149,6 @@ window.crearFamiliar = async function() {
     }
 };
 
-// Permitir enviar el mensaje también apretando la tecla "Enter"
 document.addEventListener("keypress", function(e) {
     if (e.key === "Enter" && document.activeElement === document.getElementById("msg-input")) {
         enviarMensaje();
