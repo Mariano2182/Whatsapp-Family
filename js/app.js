@@ -1,7 +1,7 @@
 import { db } from "./firebase.js";
-// MODIFICADO: Se agregan 'doc' y 'deleteDoc' a las herramientas de Firestore
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
-import { loginUser, verificarYCrearUsuarioDefecto, registrarNuevoUsuario } from "./auth.js";
+// MODIFICADO: Se agrega 'actualizarNombreUsuario' a las importaciones de auth
+import { loginUser, verificarYCrearUsuarioDefecto, registrarNuevoUsuario, actualizarNombreUsuario } from "./auth.js";
 
 let currentUser = null;
 let unsubscribeChat = null;
@@ -32,10 +32,9 @@ function cargarChatEnTiempoReal() {
     unsubscribeChat = onSnapshot(q, (snapshot) => {
         chatBox.innerHTML = ""; 
 
-        // Renombramos la variable a docSnap para evitar conflicto con la función doc() de Firebase
         snapshot.forEach((docSnap) => {
             const datos = docSnap.data();
-            const idDoc = docSnap.id; // Obtenemos el ID único del mensaje
+            const idDoc = docSnap.id; 
             const divMensaje = document.createElement("div");
 
             if (datos.remitente === currentUser.usuario) {
@@ -44,13 +43,11 @@ function cargarChatEnTiempoReal() {
                 divMensaje.className = "msg msg-recepcion";
             }
 
-            // REGLA DE BORRADO: ¿Es mi mensaje o soy el superadmin de la red?
             const esMio = datos.remitente === currentUser.usuario;
             const esSuperAdmin = currentUser.rol === "superadmin";
 
             let botonBorrar = "";
             if (esMio || esSuperAdmin) {
-                // Si cumple la condición, le inyectamos la papelera vinculada al ID del mensaje
                 botonBorrar = `<span class="delete-btn" onclick="eliminarMensaje('${idDoc}')" title="Eliminar para todos">🗑️</span>`;
             }
 
@@ -62,17 +59,45 @@ function cargarChatEnTiempoReal() {
     });
 }
 
-// NUEVA FUNCIÓN GLOBAL: Elimina el mensaje físicamente de la base de datos
 window.eliminarMensaje = async function(idDoc) {
     const confirmar = confirm("¿Estás seguro de que quieres eliminar este mensaje para todos?");
     if (!confirmar) return;
 
     try {
-        // Ejecuta el borrado directo en la colección 'mensajes' apuntando al idDoc
         await deleteDoc(doc(db, "mensajes", idDoc));
     } catch (e) {
         console.error("Error al eliminar el mensaje:", e);
-        alert("No se pudo eliminar el mensaje. Revisa los permisos.");
+        alert("No se pudo eliminar.");
+    }
+};
+
+// NUEVA FUNCIÓN GLOBAL: Gestiona la acción de cambiar el nombre desde la interfaz gráfica
+window.cambiarNombreFamiliar = async function() {
+    const actual = document.getElementById("edit-usuario-actual").value;
+    const nuevo = document.getElementById("edit-usuario-nuevo").value;
+    const adminMsg = document.getElementById("admin-msg");
+
+    adminMsg.innerText = "";
+
+    try {
+        const nombreFinal = await actualizarNombreUsuario(actual, nuevo);
+        
+        adminMsg.style.color = "green";
+        adminMsg.innerText = `¡Éxito! Se cambió el nombre de '${actual}' a '${nombreFinal}'.`;
+
+        // REGLA SENSACIONAL: Si el superadmin se cambió a sí mismo, actualizamos su sesión actual
+        if (currentUser.usuario === actual.trim().toLowerCase()) {
+            currentUser.usuario = nombreFinal;
+            localStorage.setItem("user", JSON.stringify(currentUser));
+            document.getElementById("user-info").innerText = `Usuario: ${currentUser.usuario} | Rol: ${currentUser.rol}`;
+        }
+
+        // Limpiamos las cajas de texto
+        document.getElementById("edit-usuario-actual").value = "";
+        document.getElementById("edit-usuario-nuevo").value = "";
+    } catch (e) {
+        adminMsg.style.color = "red";
+        adminMsg.innerText = e.message;
     }
 };
 
