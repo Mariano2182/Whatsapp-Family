@@ -4,91 +4,106 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat Familiar</title>
-    <link rel="stylesheet" href="css/style.css">
     <style>
-        .chat-container { display: flex; flex-direction: column; height: 70vh; max-width: 500px; margin: 20px auto; border: 1px solid #ddd; border-radius: 8px; background-color: #efeae2; overflow: hidden; }
-        .chat-header { background-color: #00a884; color: white; padding: 12px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
-        .messages-box { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+        :root {
+            --bg-body: #d1d7db;
+            --bg-chat: #efeae2;
+            --primary-color: #00a884;
+            --msg-sent: #d9fdd3;
+            --msg-received: #ffffff;
+            --text-main: #111b21;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+        body { background-color: var(--bg-body); height: 100vh; display: flex; justify-content: center; align-items: center; }
+        .container { width: 100%; max-width: 600px; height: 90vh; background-color: #ffffff; display: flex; flex-direction: column; box-shadow: 0 2px 10px rgba(0,0,0,0.2); border-radius: 8px; overflow: hidden; }
         
-        .msg { max-width: 75%; padding: 8px 35px 6px 12px; border-radius: 8px; font-size: 0.95em; line-height: 1.4; position: relative; word-break: break-word; }
-        .msg-envio { background-color: #d9fdd3; align-self: flex-end; border-top-right-radius: 0; }
-        .msg-recepcion { background-color: #ffffff; align-self: flex-start; border-top-left-radius: 0; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
-        .msg-meta { font-size: 0.75em; color: #667781; display: block; margin-bottom: 2px; font-weight: bold; }
-        .msg-time { font-size: 0.68em; color: #667781; display: block; text-align: right; margin-top: 3px; font-weight: normal; }
+        /* Pantalla de Login */
+        .login-box { padding: 30px; display: flex; flex-direction: column; justify-content: center; height: 100%; align-items: center; }
+        .login-box h2 { margin-bottom: 20px; color: var(--primary-color); }
+        .login-box input { width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; outline: none; }
+        .login-box button { width: 100%; padding: 10px; background-color: var(--primary-color); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .error-msg { color: red; margin-top: 10px; font-size: 0.9em; }
 
-        .delete-btn { position: absolute; right: 8px; top: 8px; cursor: pointer; font-size: 0.8em; opacity: 0.4; transition: opacity 0.2s; }
-        .delete-btn:hover { opacity: 1; color: red; }
-
-        .input-chat-area { display: flex; background-color: #f0f2f5; padding: 10px; gap: 10px; border-top: 1px solid #ddd; }
-        .input-chat-area input { flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #ccc; outline: none; }
-        .input-chat-area button { background-color: #00a884; color: white; border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 1.1em; }
+        /* Interfaz del Chat */
+        .chat-interface { display: flex; flex-direction: column; height: 100%; background-color: var(--bg-chat); }
+        .chat-header { background: #f0f2f5; padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd; font-size: 0.9rem; }
+        .messages-container { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; }
         
-        .user-list-box { max-height: 180px; overflow-y: auto; background-color: #ffffff; border: 1px solid #ccc; border-radius: 5px; padding: 5px; margin-top: 10px; }
-        .user-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #eee; font-size: 0.9em; }
-        .user-item:last-child { border-bottom: none; }
+        /* Globos de Mensajes e Imágenes */
+        .msg { max-width: 75%; padding: 8px 12px; margin-bottom: 10px; border-radius: 8px; font-size: 0.95rem; line-height: 1.4; position: relative; word-break: break-word; }
+        .msg-envio { background-color: var(--msg-sent); align-self: flex-end; }
+        .msg-recepcion { background-color: var(--msg-received); align-self: flex-start; }
+        .msg-meta { font-size: 0.75rem; color: #00a884; font-weight: bold; display: block; margin-bottom: 3px; }
+        .msg-time { font-size: 0.7rem; color: #667781; display: block; text-align: right; margin-top: 4px; }
+        .delete-btn { position: absolute; top: 5px; right: 5px; cursor: pointer; opacity: 0; transition: opacity 0.2s; font-size: 0.8rem; }
+        .msg:hover .delete-btn { opacity: 1; }
+
+        /* Barra Inferior de Entrada */
+        .input-area { height: 60px; background-color: #f0f2f5; display: flex; align-items: center; padding: 10px; }
+        .message-input { flex: 1; height: 40px; border-radius: 20px; border: none; padding: 0 15px; margin-right: 10px; outline: none; }
+        .attach-btn { background: none; border: none; font-size: 1.4rem; margin-right: 10px; cursor: pointer; color: #54656f; display: flex; align-items: center; }
+        .send-btn { background-color: var(--primary-color); color: white; border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+        
+        /* Panel de Administración */
+        .admin-interface { padding: 20px; display: flex; flex-direction: column; height: 100%; overflow-y: auto; }
+        .admin-interface h2 { margin-bottom: 15px; color: #333; }
+        .user-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f9f9f9; margin-bottom: 8px; border-radius: 4px; border: 1px solid #eee; }
+        .admin-section { margin-top: 20px; padding-top: 20px; border-top: 2px solid #eee; }
+        .admin-section input { padding: 8px; margin-right: 5px; border: 1px solid #ccc; border-radius: 4px; }
+        .admin-section button { padding: 8px 12px; background: var(--primary-color); color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .back-btn { margin-bottom: 15px; padding: 8px 12px; background: #667781; color: white; border: none; border-radius: 4px; cursor: pointer; align-self: flex-start; }
+
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
-
-    <div id="login-container" class="login-container">
-        <h2>Chat Familiar</h2>
-        <input type="text" id="usuario" placeholder="Usuario">
-        <input type="password" id="password" placeholder="Contraseña">
-        <button onclick="login()">Ingresar</button>
-        <p id="error" style="color: red; font-weight: bold; margin-top: 10px;"></p>
-        <p id="setup-msg" style="color: #00a884; font-weight: bold; font-size: 0.9em; margin-top: 10px;"></p>
-    </div>
-
-    <div id="app" class="hidden">
-        <div style="max-width: 500px; margin: auto; text-align: center; margin-top: 10px;">
-            <span id="user-info" style="font-weight: bold; font-size: 0.9em;"></span> | 
-            <a href="#" onclick="logout()" style="color: red; font-size: 0.9em; text-decoration: none; font-weight: bold;">Cerrar sesión</a>
-            <br><br>
-            <button id="admin-btn" class="hidden" onclick="abrirPanelAdmin()" style="background-color: #00a884; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold;">⚙️ Panel de Superadmin</button>
+    <div class="container">
+        <!-- Bloque 1: Control de Acceso -->
+        <div id="login-container" class="login-box">
+            <h2>Chat Familiar - Entrar</h2>
+            <input type="text" id="usuario" placeholder="Nombre de usuario">
+            <input type="password" id="password" placeholder="Contraseña">
+            <button onclick="login()">Ingresar</button>
+            <div id="error" class="error-msg"></div>
         </div>
 
-        <div class="chat-container">
+        <!-- Bloque 2: Sala de Mensajería Principal -->
+        <div id="app" class="chat-interface hidden">
             <div class="chat-header">
-                <span>💬 Sala Familiar</span>
+                <span id="user-info">Cargando datos de sesión...</span>
+                <div>
+                    <button id="admin-btn" class="hidden" onclick="abrirPanelAdmin()">⚙️ Admin</button>
+                    <button onclick="logout()">Salir</button>
+                </div>
             </div>
-            <div id="chat-box" class="messages-box"></div>
-            <div class="input-chat-area">
-                <input type="text" id="msg-input" placeholder="Escribe un mensaje familiar...">
-                <button onclick="enviarMensaje()">➤</button>
+            <div class="messages-container" id="chat-box"></div>
+            <div class="input-area">
+                <!-- Selector de imágenes seguro -->
+                <button class="attach-btn" onclick="seleccionarFoto()" title="Enviar imagen familiar">📎</button>
+                <input type="file" id="file-input" style="display: none;" onchange="subirFoto(this)" accept="image/*">
+                
+                <input type="text" id="msg-input" class="message-input" placeholder="Escribe un mensaje...">
+                <button class="send-btn" onclick="enviarMensaje()">➤</button>
+            </div>
+        </div>
+
+        <!-- Bloque 3: Gestión de Usuarios (Sólo Superadmin) -->
+        <div id="admin-panel" class="admin-interface hidden">
+            <button class="back-btn" onclick="volverAlApp()">⬅ Volver al Chat</button>
+            <h2>Panel de Administración</h2>
+            <div id="lista-usuarios"></div>
+            
+            <div class="admin-section">
+                <h3>Modificar Nombre de Familiar</h3>
+                <input type="text" id="edit-usuario-actual" placeholder="Usuario actual">
+                <input type="text" id="edit-usuario-nuevo" placeholder="Nuevo nombre">
+                <button onclick="cambiarNombreFamiliar()">Actualizar Nombre</button>
+                <div id="admin-msg" style="margin-top: 10px; font-weight: bold;"></div>
             </div>
         </div>
     </div>
 
-    <div id="admin-panel" class="hidden" style="max-width: 420px; margin: auto; padding: 20px; border: 1px solid #ccc; border-radius: 8px; margin-top: 20px; background-color: #f9f9f9;">
-        <h2>⚙️ Crear Nuevo Familiar</h2>
-        <input type="text" id="nuevo-usuario" placeholder="Nombre del familiar (ej: mama)" style="display:block; width:100%; margin-bottom: 10px; padding:8px;">
-        <input type="password" id="nueva-password" placeholder="Contraseña para él/ella" style="display:block; width:100%; margin-bottom: 10px; padding:8px;">
-        
-        <label style="font-size: 0.85em; font-weight: bold;">Rango:</label>
-        <select id="nuevo-rol" style="display:block; width:100%; margin-bottom: 15px; padding:8px;">
-            <option value="usuario">Usuario Común (Solo Chat)</option>
-            <option value="admin">Administrador Secundario</option>
-            <option value="superadmin">Superadmin (Control Total)</option>
-        </select>
-        <button onclick="crearFamiliar()" style="background-color: #00a884; width: 100%; margin-bottom: 10px; color: white; border: none; padding: 10px; font-weight: bold; cursor: pointer;">Crear Cuenta Familiar</button>
-
-        <hr style="margin: 20px 0; border: 0; border-top: 1px dashed #ccc;">
-        <h2>✏️ Cambiar Nombre de Usuario</h2>
-        <input type="text" id="edit-usuario-actual" placeholder="Nombre actual exacto" style="display:block; width:100%; margin-bottom: 10px; padding:8px;">
-        <input type="text" id="edit-usuario-nuevo" placeholder="Nuevo nombre elegido" style="display:block; width:100%; margin-bottom: 15px; padding:8px;">
-        <button onclick="cambiarNombreFamiliar()" style="background-color: #34b7f1; width: 100%; color: white; border: none; padding: 10px; font-weight: bold; cursor: pointer;">Actualizar Nombre de Usuario</button>
-        
-        <hr style="margin: 20px 0; border: 0; border-top: 1px dashed #ccc;">
-        <h2>👥 Control de Familiares Activos</h2>
-        <p style="font-size: 0.8em; color: #666; margin-bottom: 5px;">Lista en tiempo real. Administra accesos y claves.</p>
-        <div id="lista-usuarios" class="user-list-box"></div>
-
-        <hr style="margin: 20px 0; border: 0; border-top: 1px solid #ccc;">
-        <button onclick="volverAlApp()" style="background-color: #666; width: 100%; color: white; border: none; padding: 10px; font-weight: bold; cursor: pointer;">⬅️ Volver Al Chat</button>
-        <p id="admin-msg" style="font-weight: bold; margin-top: 15px; text-align: center;"></p>
-    </div>
-
-    <script type="module" src="js/app.js"></script>
-
+    <!-- Script principal acoplado como módulo modular -->
+    <script type="module" src="./js/app.js"></script>
 </body>
 </html>
