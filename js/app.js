@@ -2,6 +2,11 @@ import { db } from "./firebase.js";
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, deleteDoc, where, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 import { loginUser, verificarYCrearUsuarioDefecto, registrarNuevoUsuario, actualizarNombreUsuario, eliminarUsuario, cambiarPasswordUsuario } from "./auth.js";
 
+// 🚨 DETECTOR DE ERRORES EN PANTALLA (Ideal para ver fallas desde el celular)
+window.addEventListener('error', function(e) {
+    alert("⚠️ Error detectado:\n" + e.message + "\n\nArchivo: " + e.filename + "\nLínea: " + e.lineno);
+});
+
 let currentUser = null;
 let activeChatId = null; 
 
@@ -17,7 +22,10 @@ const IMGBB_API_KEY = "4a52316c7553d2229d68717ee77998fa";
 // 🔊 FUNCIÓN SINTETIZADORA DE SONIDO (Estilo Notificación Móvil)
 function reproducirSonidoNotificacion() {
     try {
-        const context = new (window.AudioContext || window.webkitAudioContext)();
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return;
+        
+        const context = new AudioContextClass();
         
         // Tono 1
         const osc1 = context.createOscillator();
@@ -33,73 +41,57 @@ function reproducirSonidoNotificacion() {
         
         // Tono 2
         setTimeout(() => {
-            const osc2 = context.createOscillator();
-            const gain2 = context.createGain();
-            osc2.type = 'sine';
-            osc2.frequency.setValueAtTime(880, context.currentTime); 
-            gain2.gain.setValueAtTime(0.06, context.currentTime);
-            gain2.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.12);
-            osc2.connect(gain2);
-            gain2.connect(context.destination);
-            osc2.start();
-            osc2.stop(context.currentTime + 0.12);
+            try {
+                const osc2 = context.createOscillator();
+                const gain2 = context.createGain();
+                osc2.type = 'sine';
+                osc2.frequency.setValueAtTime(880, context.currentTime); 
+                gain2.gain.setValueAtTime(0.06, context.currentTime);
+                gain2.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.12);
+                osc2.connect(gain2);
+                gain2.connect(context.destination);
+                osc2.start();
+                osc2.stop(context.currentTime + 0.12);
+            } catch(e2) {}
         }, 70);
     } catch (e) {
-        console.log("Audio bloqueado temporalmente por el navegador.");
+        console.log("Audio retenido por el navegador.");
     }
-// 🔊 Sonido (Ya lo tenías)
-                        reproducirSonidoNotificacion();
-                        
-                        // 📳 Vibración en primer plano (si tienes la app abierta y ya tocaste la pantalla)
-                        if ('vibrate' in navigator) {
-                            navigator.vibrate([100, 50, 100]);
-                        }
-                        
-                        // 💬 ALERTA FLOTANTE OFICIAL (Vía Service Worker)
-                        if ('Notification' in window && Notification.permission === 'granted') {
-                            let tituloAlerta = `Mensaje de ${chatData.ultimoRemitente}`;
-                            if (chatData.tipo === "grupo") {
-                                tituloAlerta = `${chatData.ultimoRemitente} en "${chatData.nombre}"`;
-                            }
+}
 
-                            // Mandamos la orden al Service Worker para que despierte al celular
-                            if ('serviceWorker' in navigator) {
-                                navigator.serviceWorker.ready.then((registration) => {
-                                    registration.showNotification(tituloAlerta, {
-                                        body: "¡Tienes mensajes nuevos sin leer!",
-                                        icon: "https://cdn-icons-png.flaticon.com/512/5968/5968771.png",
-                                        tag: chatId, // Evita acumulaciones molestas
-                                        renovate: true,
-                                        vibrate: [100, 50, 100] // Patrón de vibración nativo para Android
-                                    });
-                                });
-                            }
-                        }
-
+// Cambios de pantalla seguros (No se rompen si falta algún ID en tu HTML)
 function mostrarPantallaSegunRol(user) {
-    document.getElementById("login-container").classList.add("hidden");
-    document.getElementById("admin-panel").classList.add("hidden");
-    document.getElementById("chat-room-view").classList.add("hidden");
-    document.getElementById("chats-list-view").classList.remove("hidden");
+    const alternarOculto = (id, agregar) => {
+        const el = document.getElementById(id);
+        if (el) {
+            if (agregar) el.classList.add("hidden");
+            else el.classList.remove("hidden");
+        }
+    };
 
-    document.getElementById("chats-user-info").innerText = `${user.usuario} (${user.rol})`;
+    alternarOculto("login-container", true);
+    alternarOculto("admin-panel", true);
+    alternarOculto("chat-room-view", true);
+    alternarOculto("chats-list-view", false);
+
+    const infoUser = document.getElementById("chats-user-info");
+    if (infoUser) infoUser.innerText = `${user.usuario} (${user.rol})`;
 
     const btnCrearGrupo = document.getElementById("btn-crear-grupo-view");
-    if (user.rol === "superadmin" || user.rol === "admin") {
-        btnCrearGrupo.classList.remove("hidden");
-    } else {
-        btnCrearGrupo.classList.add("hidden");
+    if (btnCrearGrupo) {
+        if (user.rol === "superadmin" || user.rol === "admin") btnCrearGrupo.classList.remove("hidden");
+        else btnCrearGrupo.classList.add("hidden");
     }
 
     const adminBtn = document.getElementById("admin-btn");
-    if (user.rol === "superadmin") {
-        adminBtn.classList.remove("hidden");
-    } else {
-        adminBtn.classList.add("hidden");
+    if (adminBtn) {
+        if (user.rol === "superadmin") adminBtn.classList.remove("hidden");
+        else adminBtn.classList.add("hidden");
     }
 
     escucharListaDeChats();
 }
+
 function escucharListaDeChats() {
     if (!currentUser) return;
     if (unsubscribeChatsList) unsubscribeChatsList();
@@ -169,24 +161,29 @@ function escucharListaDeChats() {
                         // 🔊 Sonido
                         reproducirSonidoNotificacion();
                         
-                        // 📳 Vibración doble tipo WhatsApp
+                        // 📳 Vibración en primer plano
                         if ('vibrate' in navigator) {
                             navigator.vibrate([100, 50, 100]);
                         }
                         
-                        // 💬 Alerta Flotante en Pantalla (Notificación de Sistema)
+                        // 💬 Alerta Flotante en Pantalla (Notificación de Sistema vía Service Worker)
                         if ('Notification' in window && Notification.permission === 'granted') {
                             let tituloAlerta = `Mensaje de ${chatData.ultimoRemitente}`;
                             if (chatData.tipo === "grupo") {
                                 tituloAlerta = `${chatData.ultimoRemitente} en "${chatData.nombre}"`;
                             }
 
-                            new Notification(tituloAlerta, {
-                                body: "¡Tienes mensajes nuevos sin leer!",
-                                icon: "https://cdn-icons-png.flaticon.com/512/5968/5968771.png",
-                                tag: chatId, // Evita que se dupliquen alertas flotantes del mismo chat
-                                renovate: true
-                            });
+                            if ('serviceWorker' in navigator) {
+                                navigator.serviceWorker.ready.then((registration) => {
+                                    registration.showNotification(tituloAlerta, {
+                                        body: "¡Tienes mensajes nuevos sin leer!",
+                                        icon: "https://cdn-icons-png.flaticon.com/512/5968/5968771.png",
+                                        tag: chatId,
+                                        renovate: true,
+                                        vibrate: [100, 50, 100]
+                                    });
+                                });
+                            }
                         }
                     }
                 }
@@ -195,20 +192,26 @@ function escucharListaDeChats() {
         listaIniciada = true;
     });
 }
+
 async function abrirSalaChat(chatId, nombreChat, subetiqueta) {
     activeChatId = chatId;
     cancelarRespuesta();
 
-    document.getElementById("chats-list-view").classList.add("hidden");
-    document.getElementById("chat-room-view").classList.remove("hidden");
+    const elLista = document.getElementById("chats-list-view");
+    const elSala = document.getElementById("chat-room-view");
+    if (elLista) elLista.classList.add("hidden");
+    if (elSala) elSala.classList.remove("hidden");
     
-    document.getElementById("active-chat-title").innerText = nombreChat;
-    document.getElementById("active-chat-status").innerText = `• ${subetiqueta}`;
+    const titleEl = document.getElementById("active-chat-title");
+    const statusEl = document.getElementById("active-chat-status");
+    if (titleEl) titleEl.innerText = nombreChat;
+    if (statusEl) statusEl.innerText = `• ${subetiqueta}`;
 
     if (unsubscribeChatMessages) unsubscribeChatMessages();
 
     const q = query(collection(db, "chats", chatId, "mensajes"), orderBy("fecha", "asc"));
     const chatBox = document.getElementById("chat-box");
+    if (!chatBox) return;
 
     unsubscribeChatMessages = onSnapshot(q, (snapshot) => {
         chatBox.innerHTML = "";
@@ -232,9 +235,9 @@ async function abrirSalaChat(chatId, nombreChat, subetiqueta) {
             const esMio = datos.remitente === currentUser.usuario;
             const esSuperAdmin = currentUser.rol === "superadmin";
 
-            let botonBorrar = "";
+            let deleteButton = "";
             if (esMio || esSuperAdmin) {
-                botonBorrar = `<span class="delete-btn" onclick="eliminarMensaje('${idDoc}')" title="Eliminar mensaje">🗑️</span>`;
+                deleteButton = `<span class="delete-btn" onclick="eliminarMensaje('${idDoc}')" title="Eliminar mensaje">🗑️</span>`;
             }
 
             let textoPreview = "📝 Mensaje";
@@ -260,7 +263,7 @@ async function abrirSalaChat(chatId, nombreChat, subetiqueta) {
             if (datos.imagenUrl) {
                 contenidoMensaje = `<img src="${datos.imagenUrl}" style="max-width: 100%; max-height: 220px; border-radius: 6px; display: block; margin-top: 5px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" onclick="window.open('${datos.imagenUrl}', '_blank')">`;
             } else {
-                contenidoMensaje = `<span style="display:block;">${datos.texto}</span>`;
+                contenidoMensaje = `<span style="display:block;">${datos.texto || ''}</span>`;
             }
 
             divMensaje.innerHTML = `
@@ -269,7 +272,7 @@ async function abrirSalaChat(chatId, nombreChat, subetiqueta) {
                 ${contenidoMensaje}
                 <span class="msg-time">${horaFormateada}</span>
                 ${botonResponder}
-                ${botonBorrar}
+                ${deleteButton}
             `;
             chatBox.appendChild(divMensaje);
         });
@@ -277,11 +280,26 @@ async function abrirSalaChat(chatId, nombreChat, subetiqueta) {
         chatBox.scrollTop = chatBox.scrollHeight;
     });
 }
+
 async function login() {
-    const usuario = document.getElementById("usuario").value;
-    const password = document.getElementById("password").value;
-    const error = document.getElementById("error");
-    error.innerText = "";
+    const elUser = document.getElementById("usuario");
+    const elPass = document.getElementById("password");
+    const errorBox = document.getElementById("error") || document.getElementById("login-error");
+
+    if (errorBox) errorBox.innerText = "";
+
+    if (!elUser || !elPass) {
+        alert("Error de diseño: No se encontraron los campos en el HTML.");
+        return;
+    }
+
+    const usuario = elUser.value.trim();
+    const password = elPass.value.trim();
+
+    if (!usuario || !password) {
+        if (errorBox) errorBox.innerText = "Escribe tu usuario y contraseña.";
+        return;
+    }
 
     try {
         const user = await loginUser(usuario, password);
@@ -289,12 +307,14 @@ async function login() {
         localStorage.setItem("user", JSON.stringify(user));
         mostrarPantallaSegunRol(user);
     } catch(e) {
-        error.innerText = e.message;
+        if (errorBox) errorBox.innerText = e.message;
+        else alert("Error al ingresar: " + e.message);
     }
 }
 
 async function enviarMensaje() {
     const input = document.getElementById("msg-input");
+    if (!input) return;
     const texto = input.value.trim();
     if (!texto || !activeChatId) return;
 
@@ -320,7 +340,7 @@ async function enviarMensaje() {
     }
 }
 
-// Vinculación global para que responda el HTML tradicional
+// Vinculación global de funciones
 window.login = login;
 window.enviarMensaje = enviarMensaje;
 
@@ -335,15 +355,20 @@ window.logout = function(){
 window.volverAListaChats = function() {
     if (unsubscribeChatMessages) unsubscribeChatMessages();
     activeChatId = null;
-    document.getElementById("chat-room-view").classList.add("hidden");
-    document.getElementById("chats-list-view").classList.remove("hidden");
+    const elSala = document.getElementById("chat-room-view");
+    const elLista = document.getElementById("chats-list-view");
+    if (elSala) elSala.classList.add("hidden");
+    if (elLista) elLista.classList.remove("hidden");
     escucharListaDeChats();
 };
 
 window.abrirModalGrupo = async function() {
     const listContainer = document.getElementById("group-users-list");
+    if (!listContainer) return;
     listContainer.innerHTML = "<p style='padding:10px;'>Cargando red familiar...</p>";
-    document.getElementById("modal-grupo").classList.remove("hidden");
+    
+    const mGrupo = document.getElementById("modal-grupo");
+    if (mGrupo) mGrupo.classList.remove("hidden");
 
     try {
         const snap = await getDocs(collection(db, "usuarios"));
@@ -361,13 +386,17 @@ window.abrirModalGrupo = async function() {
         console.error(e);
     }
 };
+
 window.cerrarModalGrupo = function() {
-    document.getElementById("modal-grupo").classList.add("hidden");
-    document.getElementById("group-name-input").value = "";
+    const mGrupo = document.getElementById("modal-grupo");
+    if (mGrupo) mGrupo.classList.add("hidden");
+    const gInput = document.getElementById("group-name-input");
+    if (gInput) gInput.value = "";
 };
 
 window.crearGrupoConfirmar = async function() {
-    const nameInput = document.getElementById("group-name-input").value.trim();
+    const gInput = document.getElementById("group-name-input");
+    const nameInput = gInput ? gInput.value.trim() : "";
     if (!nameInput) return alert("Por favor, escribe un nombre para el grupo.");
 
     const checkboxes = document.querySelectorAll(".group-user-checkbox:checked");
@@ -396,8 +425,11 @@ window.crearGrupoConfirmar = async function() {
 
 window.abrirModalDM = async function() {
     const listContainer = document.getElementById("dm-users-list");
+    if (!listContainer) return;
     listContainer.innerHTML = "<p style='padding:10px;'>Cargando familiares...</p>";
-    document.getElementById("modal-dm").classList.remove("hidden");
+    
+    const mDm = document.getElementById("modal-dm");
+    if (mDm) mDm.classList.remove("hidden");
 
     try {
         const snap = await getDocs(collection(db, "usuarios"));
@@ -419,7 +451,8 @@ window.abrirModalDM = async function() {
 };
 
 window.cerrarModalDM = function() {
-    document.getElementById("modal-dm").classList.add("hidden");
+    const mDm = document.getElementById("modal-dm");
+    if (mDm) mDm.classList.add("hidden");
 };
 
 async function iniciarChatIndividual(otroUsuario) {
@@ -453,8 +486,15 @@ async function iniciarChatIndividual(otroUsuario) {
         console.error(e);
     }
 }
-window.abrirGaleria = function() { document.getElementById("gallery-input").click(); };
-window.abrirCamara = function() { document.getElementById("camera-input").click(); };
+
+window.abrirGaleria = function() { 
+    const gIn = document.getElementById("gallery-input");
+    if (gIn) gIn.click(); 
+};
+window.abrirCamara = function() { 
+    const cIn = document.getElementById("camera-input");
+    if (cIn) cIn.click(); 
+};
 
 window.subirFoto = async function(elementoInput) {
     const archivo = elementoInput.files[0];
@@ -466,9 +506,11 @@ window.subirFoto = async function(elementoInput) {
     }
 
     const msgInput = document.getElementById("msg-input");
-    const placeholderOriginal = msgInput.placeholder;
-    msgInput.disabled = true;
-    msgInput.placeholder = "Subiendo imagen familiar... ⏳";
+    const placeholderOriginal = msgInput ? msgInput.placeholder : "";
+    if (msgInput) {
+        msgInput.disabled = true;
+        msgInput.placeholder = "Subiendo imagen familiar... ⏳";
+    }
 
     try {
         const formData = new FormData();
@@ -503,8 +545,10 @@ window.subirFoto = async function(elementoInput) {
     } catch (e) {
         alert("Hubo un problema al subir la foto.");
     } finally {
-        msgInput.disabled = false;
-        msgInput.placeholder = placeholderOriginal;
+        if (msgInput) {
+            msgInput.disabled = false;
+            msgInput.placeholder = placeholderOriginal;
+        }
         elementoInput.value = ""; 
     }
 };
@@ -517,22 +561,31 @@ window.eliminarMensaje = async function(idDoc) {
         console.error(e);
     }
 };
+
 window.seleccionarRespuesta = function(id, texto, remitente) {
     replyTarget = { msgId: id, texto: texto, remitente: remitente };
-    document.getElementById("reply-preview-user").innerText = `Respondiendo a ${remitente}`;
-    document.getElementById("reply-preview-text").innerText = texto;
-    document.getElementById("reply-preview-box").classList.remove("hidden");
-    document.getElementById("msg-input").focus();
+    
+    const rUser = document.getElementById("reply-preview-user");
+    const rText = document.getElementById("reply-preview-text");
+    const rBox = document.getElementById("reply-preview-box");
+    const mInput = document.getElementById("msg-input");
+
+    if (rUser) rUser.innerText = `Respondiendo a ${remitente}`;
+    if (rText) rText.innerText = texto;
+    if (rBox) rBox.classList.remove("hidden");
+    if (mInput) mInput.focus();
 };
 
 window.cancelarRespuesta = function() {
     replyTarget = null;
-    document.getElementById("reply-preview-box").classList.add("hidden");
+    const rBox = document.getElementById("reply-preview-box");
+    if (rBox) rBox.classList.add("hidden");
 };
 
 function escucharUsuariosAdmin() {
     if (unsubscribeUsuariosAdmin) unsubscribeUsuariosAdmin();
     const listaBox = document.getElementById("lista-usuarios");
+    if (!listaBox) return;
 
     unsubscribeUsuariosAdmin = onSnapshot(collection(db, "usuarios"), (snapshot) => {
         listaBox.innerHTML = "";
@@ -565,24 +618,29 @@ window.crearNuevoUsuarioAdmin = async function() {
     const rol = document.getElementById("reg-rol").value;
     const adminRegMsg = document.getElementById("admin-reg-msg");
 
-    adminRegMsg.innerText = "";
+    if (adminRegMsg) adminRegMsg.innerText = "";
 
     if (!usuario || !password) {
-        adminRegMsg.style.color = "red";
-        adminRegMsg.innerText = "Por favor, completa el nombre de usuario y la contraseña.";
+        if (adminRegMsg) {
+            adminRegMsg.style.color = "red";
+            adminRegMsg.innerText = "Por favor, completa el nombre de usuario y la contraseña.";
+        }
         return;
     }
 
     try {
         await registrarNuevoUsuario(usuario, password, rol);
-        adminRegMsg.style.color = "green";
-        adminRegMsg.innerText = `¡Familiar '${usuario}' registrado con éxito como ${rol}!`;
-        
+        if (adminRegMsg) {
+            adminRegMsg.style.color = "green";
+            adminRegMsg.innerText = `¡Familiar '${usuario}' registrado con éxito como ${rol}!`;
+        }
         document.getElementById("reg-usuario").value = "";
         document.getElementById("reg-password").value = "";
     } catch (e) {
-        adminRegMsg.style.color = "red";
-        adminRegMsg.innerText = e.message;
+        if (adminRegMsg) {
+            adminRegMsg.style.color = "red";
+            adminRegMsg.innerText = e.message;
+        }
     }
 };
 
@@ -596,57 +654,70 @@ window.panelCambiarClave = async function(usuario) {
     if (!nuevaClave || !nuevaClave.trim()) return;
     try { await cambiarPasswordUsuario(usuario, nuevaClave); alert("Contraseña actualizada."); } catch(e) { alert(e.message); }
 };
+
 window.cambiarNombreFamiliar = async function() {
     const actual = document.getElementById("edit-usuario-actual").value;
     const nuevo = document.getElementById("edit-usuario-nuevo").value;
     const adminMsg = document.getElementById("admin-msg");
-    adminMsg.innerText = "";
+    if (adminMsg) adminMsg.innerText = "";
 
     try {
         const nombreFinal = await actualizarNombreUsuario(actual, nuevo);
-        adminMsg.style.color = "green";
-        adminMsg.innerText = `¡Cambiado con éxito!`;
+        if (adminMsg) {
+            adminMsg.style.color = "green";
+            adminMsg.innerText = `¡Cambiado con éxito!`;
+        }
 
-        if (currentUser.usuario === actual.trim().toLowerCase()) {
+        if (currentUser && currentUser.usuario === actual.trim().toLowerCase()) {
             currentUser.usuario = nombreFinal;
             localStorage.setItem("user", JSON.stringify(currentUser));
         }
         document.getElementById("edit-usuario-actual").value = "";
         document.getElementById("edit-usuario-nuevo").value = "";
     } catch (e) {
-        adminMsg.style.color = "red";
-        adminMsg.innerText = e.message;
+        if (adminMsg) {
+            adminMsg.style.color = "red";
+            adminMsg.innerText = e.message;
+        }
     }
 };
 
 window.abrirPanelAdmin = function() {
-    document.getElementById("chats-list-view").classList.add("hidden");
-    document.getElementById("admin-panel").classList.remove("hidden");
+    const elLista = document.getElementById("chats-list-view");
+    const elAdmin = document.getElementById("admin-panel");
+    if (elLista) elLista.classList.add("hidden");
+    if (elAdmin) elAdmin.classList.remove("hidden");
     escucharUsuariosAdmin(); 
 };
 
 window.volverAlAppDesdeAdmin = function() {
     if (unsubscribeUsuariosAdmin) unsubscribeUsuariosAdmin(); 
-    document.getElementById("admin-panel").classList.add("hidden");
-    document.getElementById("chats-list-view").classList.remove("hidden");
+    const elAdmin = document.getElementById("admin-panel");
+    const elLista = document.getElementById("chats-list-view");
+    if (elAdmin) elAdmin.classList.add("hidden");
+    if (elLista) elLista.classList.remove("hidden");
 };
 
-// ⌨️ ATAJOS DE TECLADO (Enter para mandar mensajes o loguear)
-document.addEventListener("keypress", function(e) {
+// ⌨️ ATAJOS DE TECLADO
+document.addEventListener("keydown", function(e) {
     if (e.key === "Enter") {
-        if (document.activeElement === document.getElementById("msg-input")) {
+        const msgIn = document.getElementById("msg-input");
+        const passIn = document.getElementById("password");
+        const userIn = document.getElementById("usuario");
+
+        if (document.activeElement === msgIn) {
             enviarMensaje();
-        } else if (document.activeElement === document.getElementById("password") || document.activeElement === document.getElementById("usuario")) {
+        } else if (document.activeElement === passIn || document.activeElement === userIn) {
             login();
         }
     }
 });
 
-// ⚡ INICIALIZACIÓN INMUNE A ERRORES (Actualizada para pedir Notificaciones)
+// ⚡ INICIALIZACIÓN INMUNE A ERRORES (Pide permisos de notificación flotante)
 async function inicializarApp() {
     try { await verificarYCrearUsuarioDefecto(); } catch (err) {}
     
-    // 🔔 SOLICITUD DE PERMISO PARA ALERTAS FLOTANTES
+    // Solicitud de permisos flotantes nativos
     if ('Notification' in window && Notification.permission === 'default') {
         Notification.requestPermission();
     }
