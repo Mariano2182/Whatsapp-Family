@@ -1,0 +1,17 @@
+{
+  "short_name": "ChatFamiliar",
+  "name": "Chat Familiar",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/5968/5968771.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "./index.html",
+  "background_color": "#ffffff",
+  "theme_color": "#00a884",
+  "display": "standalone",
+  "orientation": "portrait"
+}
