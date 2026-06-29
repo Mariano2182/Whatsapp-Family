@@ -47,7 +47,34 @@ function reproducirSonidoNotificacion() {
     } catch (e) {
         console.log("Audio bloqueado temporalmente por el navegador.");
     }
-}
+// 🔊 Sonido (Ya lo tenías)
+                        reproducirSonidoNotificacion();
+                        
+                        // 📳 Vibración en primer plano (si tienes la app abierta y ya tocaste la pantalla)
+                        if ('vibrate' in navigator) {
+                            navigator.vibrate([100, 50, 100]);
+                        }
+                        
+                        // 💬 ALERTA FLOTANTE OFICIAL (Vía Service Worker)
+                        if ('Notification' in window && Notification.permission === 'granted') {
+                            let tituloAlerta = `Mensaje de ${chatData.ultimoRemitente}`;
+                            if (chatData.tipo === "grupo") {
+                                tituloAlerta = `${chatData.ultimoRemitente} en "${chatData.nombre}"`;
+                            }
+
+                            // Mandamos la orden al Service Worker para que despierte al celular
+                            if ('serviceWorker' in navigator) {
+                                navigator.serviceWorker.ready.then((registration) => {
+                                    registration.showNotification(tituloAlerta, {
+                                        body: "¡Tienes mensajes nuevos sin leer!",
+                                        icon: "https://cdn-icons-png.flaticon.com/512/5968/5968771.png",
+                                        tag: chatId, // Evita acumulaciones molestas
+                                        renovate: true,
+                                        vibrate: [100, 50, 100] // Patrón de vibración nativo para Android
+                                    });
+                                });
+                            }
+                        }
 
 function mostrarPantallaSegunRol(user) {
     document.getElementById("login-container").classList.add("hidden");
