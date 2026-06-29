@@ -126,12 +126,21 @@ function escucharListaDeChats() {
             listaBox.appendChild(divRow);
         });
 
+        // ... (todo el código anterior de escucharListaDeChats queda igual)
         if (listaIniciada) {
             snapshot.docChanges().forEach(change => {
                 if (change.type === "modified" || change.type === "added") {
                     const chatData = change.doc.data();
                     if (chatData.ultimoRemitente && chatData.ultimoRemitente !== currentUser.usuario) {
+                        
+                        // 🔊 Reproduce el sonido de notificación que ya tenías
                         reproducirSonidoNotificacion();
+                        
+                        // 📳 Vibración estilo WhatsApp (Pulso de 100ms, pausa de 50ms, pulso de 100ms)
+                        if ('vibrate' in navigator) {
+                            navigator.vibrate([100, 50, 100]);
+                        }
+                        
                     }
                 }
             });
