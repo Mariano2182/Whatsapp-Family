@@ -3,7 +3,7 @@
   "name": "Chat Familiar",
   "icons": [
   {
-    "src": "./icono.svg",
+    "src": "./gemini-svg.svg",
     "sizes": "512x512",
     "type": "image/svg+xml",
     "purpose": "any maskable"
