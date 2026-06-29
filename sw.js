@@ -11,3 +11,17 @@ self.addEventListener('fetch', (e) => {
     fetch(e.request).catch(() => caches.match(e.request))
   );
 });
+
+// 🔔 Esto maneja qué pasa cuando el usuario hace CLIC en la alerta flotante
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close(); // Cierra la alerta
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // Si la app ya está abierta, la enfoca. Si no, la abre.
+      if (clientList.length > 0) {
+        return clientList[0].focus();
+      }
+      return clients.openWindow('./index.html');
+    })
+  );
+});
