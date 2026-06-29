@@ -74,6 +74,7 @@ function mostrarPantallaSegunRol(user) {
     escucharListaDeChats();
 }
 function escucharListaDeChats() {
+    if (!currentUser) return;
     if (unsubscribeChatsList) unsubscribeChatsList();
     listaIniciada = false; 
 
@@ -92,55 +93,74 @@ function escucharListaDeChats() {
         });
 
         const listaBox = document.getElementById("lista-chats-items");
-        listaBox.innerHTML = "";
+        if (listaBox) {
+            listaBox.innerHTML = "";
 
-        if (chatsArr.length === 0) {
-            listaBox.innerHTML = `<div style="text-align:center; color:#667781; margin-top:30px; font-size:0.9rem; padding: 20px;">No tienes chats activos.<br>¡Crea un grupo o inicia un chat individual arriba!</div>`;
-            listaIniciada = true;
-            return;
-        }
-
-        chatsArr.forEach((chat) => {
-            const divRow = document.createElement("div");
-            divRow.className = "chat-item-row";
-
-            let nombreMostrar = chat.nombre;
-            let icono = "👥";
-            let subetiqueta = "Grupo familiar";
-
-            if (chat.tipo === "individual") {
-                nombreMostrar = chat.participantes.find(p => p !== currentUser.usuario) || currentUser.usuario;
-                icono = "👤";
-                subetiqueta = "Chat privado";
+            if (chatsArr.length === 0) {
+                listaBox.innerHTML = `<div style="text-align:center; color:#667781; margin-top:30px; font-size:0.9rem; padding: 20px;">No tienes chats activos.<br>¡Crea un grupo o inicia un chat individual arriba!</div>`;
+                listaIniciada = true;
+                return;
             }
 
-            divRow.onclick = () => abrirSalaChat(chat.id, nombreMostrar, subetiqueta);
-            
-            divRow.innerHTML = `
-                <div class="chat-avatar">${icono}</div>
-                <div class="chat-row-details">
-                    <span class="chat-row-title">${nombreMostrar}</span>
-                    <span class="chat-row-meta">${subetiqueta}</span>
-                </div>
-            `;
-            listaBox.appendChild(divRow);
-        });
+            chatsArr.forEach((chat) => {
+                const divRow = document.createElement("div");
+                divRow.className = "chat-item-row";
 
-        // ... (todo el código anterior de escucharListaDeChats queda igual)
+                let nombreMostrar = chat.nombre;
+                let icono = "👥";
+                let subetiqueta = "Grupo familiar";
+
+                if (chat.tipo === "individual") {
+                    nombreMostrar = chat.participantes.find(p => p !== currentUser.usuario) || currentUser.usuario;
+                    icono = "👤";
+                    subetiqueta = "Chat privado";
+                }
+
+                divRow.onclick = () => abrirSalaChat(chat.id, nombreMostrar, subetiqueta);
+                
+                divRow.innerHTML = `
+                    <div class="chat-avatar">${icono}</div>
+                    <div class="chat-row-details">
+                        <span class="chat-row-title">${nombreMostrar}</span>
+                        <span class="chat-row-meta">${subetiqueta}</span>
+                    </div>
+                `;
+                listaBox.appendChild(divRow);
+            });
+        }
+
+        // 🚨 CONTROL DE ALERTAS, SONIDOS Y VIBRACIÓN DE NUEVOS MENSAJES
         if (listaIniciada) {
             snapshot.docChanges().forEach(change => {
                 if (change.type === "modified" || change.type === "added") {
+                    const chatId = change.doc.id;
                     const chatData = change.doc.data();
-                    if (chatData.ultimoRemitente && chatData.ultimoRemitente !== currentUser.usuario) {
+                    
+                    // Solo alerta si el mensaje lo mandó otro Y si NO estamos viendo ese chat actualmente
+                    if (chatData.ultimoRemitente && chatData.ultimoRemitente !== currentUser.usuario && activeChatId !== chatId) {
                         
-                        // 🔊 Reproduce el sonido de notificación que ya tenías
+                        // 🔊 Sonido
                         reproducirSonidoNotificacion();
                         
-                        // 📳 Vibración estilo WhatsApp (Pulso de 100ms, pausa de 50ms, pulso de 100ms)
+                        // 📳 Vibración doble tipo WhatsApp
                         if ('vibrate' in navigator) {
                             navigator.vibrate([100, 50, 100]);
                         }
                         
+                        // 💬 Alerta Flotante en Pantalla (Notificación de Sistema)
+                        if ('Notification' in window && Notification.permission === 'granted') {
+                            let tituloAlerta = `Mensaje de ${chatData.ultimoRemitente}`;
+                            if (chatData.tipo === "grupo") {
+                                tituloAlerta = `${chatData.ultimoRemitente} en "${chatData.nombre}"`;
+                            }
+
+                            new Notification(tituloAlerta, {
+                                body: "¡Tienes mensajes nuevos sin leer!",
+                                icon: "https://cdn-icons-png.flaticon.com/512/5968/5968771.png",
+                                tag: chatId, // Evita que se dupliquen alertas flotantes del mismo chat
+                                renovate: true
+                            });
+                        }
                     }
                 }
             });
