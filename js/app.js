@@ -288,13 +288,50 @@ async function abrirSalaChat(chatId, nombreChat, subetiqueta) {
                 }
             }
 
+            // --- CÓDIGO PROCESADOR DE REACCIONES ---
+            const miReaccionActual = datos.reacciones ? (datos.reacciones[currentUser.usuario] || "") : "";
+            let reaccionesHtml = "";
+            
+            if (datos.reacciones && Object.keys(datos.reacciones).length > 0) {
+                reaccionesHtml = `<div class="msg-reactions">`;
+                const conteoReacciones = {};
+                
+                // Agrupamos reacciones idénticas (ej: si 3 ponen ❤️, muestra ❤️ 3)
+                for (const user in datos.reacciones) {
+                    const emo = datos.reacciones[user];
+                    if (emo) {
+                        conteoReacciones[emo] = (conteoReacciones[emo] || 0) + 1;
+                    }
+                }
+                for (const emo in conteoReacciones) {
+                    reaccionesHtml += `<span class="reaction-badge">${emo} <small>${conteoReacciones[emo]}</small></span>`;
+                }
+                reaccionesHtml += `</div>`;
+            }
+
+            let botonReaccionar = `<span class="react-btn" onclick="togglePicker('${idDoc}')" title="Reaccionar">😀</span>`;
+            
+            let pickerHtml = `
+                <div class="reactions-picker hidden" id="picker-${idDoc}">
+                    <span class="${miReaccionActual === '👍' ? 'active-emo' : ''}" onclick="enviarReaccion('${idDoc}', '👍', '${miReaccionActual}')">👍</span>
+                    <span class="${miReaccionActual === '❤️' ? 'active-emo' : ''}" onclick="enviarReaccion('${idDoc}', '❤️', '${miReaccionActual}')">❤️</span>
+                    <span class="${miReaccionActual === '😂' ? 'active-emo' : ''}" onclick="enviarReaccion('${idDoc}', '😂', '${miReaccionActual}')">😂</span>
+                    <span class="${miReaccionActual === '😮' ? 'active-emo' : ''}" onclick="enviarReaccion('${idDoc}', '😮', '${miReaccionActual}')">😮</span>
+                    <span class="${miReaccionActual === '🙏' ? 'active-emo' : ''}" onclick="enviarReaccion('${idDoc}', '🙏', '${miReaccionActual}')">🙏</span>
+                </div>
+            `;
+            // ----------------------------------------
+
             divMensaje.innerHTML = `
                 <span class="msg-meta">${datos.remitente}</span> 
                 ${bloqueCita}
                 ${contenidoMensaje}
+                ${reaccionesHtml}
                 <span class="msg-time">${horaFormateada}${tildesHtml}</span>
+                ${botonReaccionar}
                 ${botonResponder}
                 ${deleteButton}
+                ${pickerHtml}
             `;
             chatBox.appendChild(divMensaje);
         });
@@ -360,7 +397,7 @@ async function enviarMensaje() {
             ultimoRemitente: currentUser.usuario 
         });
     } catch (e) {
-        console.error("Error enviando texto:", e);
+        console.error("Error sending message:", e);
     }
 }
 
@@ -723,6 +760,36 @@ window.volverAlAppDesdeAdmin = function() {
     const elLista = document.getElementById("chats-list-view");
     if (elAdmin) elAdmin.classList.add("hidden");
     if (elLista) elLista.classList.remove("hidden");
+};
+
+window.togglePicker = function(idDoc) {
+    const picker = document.getElementById(`picker-${idDoc}`);
+    if (picker) {
+        picker.classList.toggle("hidden");
+    }
+};
+
+window.enviarReaccion = async function(idDoc, emoji, reaccionActual) {
+    if (!activeChatId || !currentUser) return;
+    
+    const picker = document.getElementById(`picker-${idDoc}`);
+    if (picker) picker.classList.add("hidden");
+
+    try {
+        const docRef = doc(db, "chats", activeChatId, "mensajes", idDoc);
+        
+        if (reaccionActual === emoji) {
+            await updateDoc(docRef, {
+                [`reacciones.${currentUser.usuario}`]: deleteField()
+            });
+        } else {
+            await updateDoc(docRef, {
+                [`reacciones.${currentUser.usuario}`]: emoji
+            });
+        }
+    } catch (e) {
+        console.error("Error gestionando reacción en Firestore:", e);
+    }
 };
 
 // ⌨️ ATAJOS DE TECLADO
