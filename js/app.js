@@ -595,13 +595,26 @@ document.addEventListener("keypress", function(e) {
     }
 });
 
-// ⚡ INICIALIZACIÓN DIRECTA (Solución robusta para redes móviles)
+// ⚡ INICIALIZACIÓN INMUNE A ERRORES (Actualizada para pedir Notificaciones)
 async function inicializarApp() {
     try { await verificarYCrearUsuarioDefecto(); } catch (err) {}
-    const saved = localStorage.getItem("user");
-    if (saved) {
-        currentUser = JSON.parse(saved);
-        mostrarPantallaSegunRol(currentUser);
+    
+    // 🔔 SOLICITUD DE PERMISO PARA ALERTAS FLOTANTES
+    if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+    }
+    
+    try {
+        const saved = localStorage.getItem("user");
+        if (saved && saved !== "undefined") {
+            currentUser = JSON.parse(saved);
+            if (currentUser && currentUser.usuario) {
+                mostrarPantallaSegunRol(currentUser);
+            }
+        }
+    } catch(e) {
+        console.error("Error cargando sesión anterior:", e);
+        localStorage.removeItem("user");
     }
 }
 inicializarApp();
