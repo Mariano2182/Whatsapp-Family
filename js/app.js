@@ -135,7 +135,8 @@ function escucharListaDeChats() {
                     subetiqueta = "Chat privado";
                 }
 
-                divRow.onclick = () => abrirSalaChat(chat.id, nombreMostrar, subetiqueta);
+                // 🌟 INTEGRADO: Se añade 'chat.participantes' como cuarto argumento
+                divRow.onclick = () => abrirSalaChat(chat.id, nombreMostrar, subetiqueta, chat.participantes);
                 
                 divRow.innerHTML = `
                     <div class="chat-avatar">${icono}</div>
