@@ -1,5 +1,9 @@
 import { db } from "./firebase.js";
-import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, deleteDoc, where, getDocs, updateDoc, deleteField } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+import { 
+    collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, 
+    deleteDoc, where, getDocs, updateDoc, deleteField,
+    getDoc, arrayUnion // 👈 Integrados para la gestión de miembros
+} from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 import { loginUser, verificarYCrearUsuarioDefecto, registrarNuevoUsuario, actualizarNombreUsuario, eliminarUsuario, cambiarPasswordUsuario } from "./auth.js";
 
 // 🚨 DETECTOR DE ERRORES EN PANTALLA (Ideal para ver fallas desde el celular)
@@ -97,6 +101,7 @@ function escucharListaDeChats() {
     if (unsubscribeChatsList) unsubscribeChatsList();
     listaIniciada = false; 
 
+    // El filtro where garantiza PRIVACIDAD ABSOLUTA: nadie ve chats de terceros
     const q = query(collection(db, "chats"), where("participantes", "array-contains", currentUser.usuario));
 
     unsubscribeChatsList = onSnapshot(q, (snapshot) => {
@@ -148,25 +153,19 @@ function escucharListaDeChats() {
             });
         }
 
-        // 🚨 CONTROL DE ALERTAS, SONIDOS Y VIBRACIÓN DE NUEVOS MENSAJES
+        // CONTROL DE ALERTAS, SONIDOS Y VIBRACIÓN DE NUEVOS MENSAJES
         if (listaIniciada) {
             snapshot.docChanges().forEach(change => {
                 if (change.type === "modified" || change.type === "added") {
                     const chatId = change.doc.id;
                     const chatData = change.doc.data();
                     
-                    // Solo alerta si el mensaje lo mandó otro Y si NO estamos viendo ese chat actualmente
                     if (chatData.ultimoRemitente && chatData.ultimoRemitente !== currentUser.usuario && activeChatId !== chatId) {
-                        
-                        // 🔊 Sonido
                         reproducirSonidoNotificacion();
-                        
-                        // 📳 Vibración en primer plano
                         if ('vibrate' in navigator) {
                             navigator.vibrate([100, 50, 100]);
                         }
                         
-                        // 💬 Alerta Flotante en Pantalla (Notificación de Sistema vía Service Worker)
                         if ('Notification' in window && Notification.permission === 'granted') {
                             let tituloAlerta = `Mensaje de ${chatData.ultimoRemitente}`;
                             if (chatData.tipo === "grupo") {
@@ -207,6 +206,16 @@ async function abrirSalaChat(chatId, nombreChat, subetiqueta) {
     if (titleEl) titleEl.innerText = nombreChat;
     if (statusEl) statusEl.innerText = `• ${subetiqueta}`;
 
+    // ➕ CONTROL SUPERADMIN: Muestra u oculta el botón de añadir miembro según el rol y tipo de chat
+    const btnAdd = document.getElementById("btn-abrir-modal-add-miembro");
+    if (btnAdd) {
+        if (currentUser && currentUser.rol === "superadmin" && subetiqueta === "Grupo familiar") {
+            btnAdd.classList.remove("hidden");
+        } else {
+            btnAdd.classList.add("hidden");
+        }
+    }
+
     if (unsubscribeChatMessages) unsubscribeChatMessages();
 
     const q = query(collection(db, "chats", chatId, "mensajes"), orderBy("fecha", "asc"));
@@ -219,10 +228,9 @@ async function abrirSalaChat(chatId, nombreChat, subetiqueta) {
         snapshot.forEach((docSnap) => {
             const datos = docSnap.data();
             const idDoc = docSnap.id;
-            const docRef = docSnap.ref; // Referencia directa al documento para la actualización
+            const docRef = docSnap.ref;
 
-            // 👁️ NUEVO (DOBLE TILDE): Si el mensaje lo envió OTRA persona y está "sin leer", 
-            // significa que yo lo estoy abriendo en este instante. Lo marco como leído en Firebase.
+            // DOBLE TILDE: Marcar como leído
             if (datos.remitente !== currentUser.usuario && datos.leido === false) {
                 updateDoc(docRef, { leido: true }).catch(err => 
                     console.error("Error al actualizar estado de lectura:", err)
@@ -276,19 +284,16 @@ async function abrirSalaChat(chatId, nombreChat, subetiqueta) {
                 contenidoMensaje = `<span style="display:block;">${datos.texto || ''}</span>`;
             }
 
-            // 👁️ NUEVO (DOBLE TILDE): Determinar qué tilde inyectar al lado de la hora (Sólo en mis mensajes)
             let tildesHtml = "";
             if (datos.remitente === currentUser.usuario) {
                 if (datos.leido === true) {
-                    // Doble tilde azul
                     tildesHtml = `<span style="color: #53bdeb; margin-left: 5px; font-weight: bold; font-size: 0.9em;">✓✓</span>`;
                 } else {
-                    // Un tilde gris
                     tildesHtml = `<span style="color: #8696a0; margin-left: 5px; font-size: 0.9em;">✓</span>`;
                 }
             }
 
-            // --- CÓDIGO PROCESADOR DE REACCIONES ---
+            // PROCESADOR DE REACCIONES AGRUPADAS
             const miReaccionActual = datos.reacciones ? (datos.reacciones[currentUser.usuario] || "") : "";
             let reaccionesHtml = "";
             
@@ -296,7 +301,6 @@ async function abrirSalaChat(chatId, nombreChat, subetiqueta) {
                 reaccionesHtml = `<div class="msg-reactions">`;
                 const conteoReacciones = {};
                 
-                // Agrupamos reacciones idénticas (ej: si 3 ponen ❤️, muestra ❤️ 3)
                 for (const user in datos.reacciones) {
                     const emo = datos.reacciones[user];
                     if (emo) {
@@ -320,7 +324,6 @@ async function abrirSalaChat(chatId, nombreChat, subetiqueta) {
                     <span class="${miReaccionActual === '🙏' ? 'active-emo' : ''}" onclick="enviarReaccion('${idDoc}', '🙏', '${miReaccionActual}')">🙏</span>
                 </div>
             `;
-            // ----------------------------------------
 
             divMensaje.innerHTML = `
                 <span class="msg-meta">${datos.remitente}</span> 
@@ -378,7 +381,6 @@ async function enviarMensaje() {
     if (!texto || !activeChatId) return;
 
     try {
-        // 👁️ NUEVO (DOBLE TILDE): Agregado el campo 'leido: false' por defecto
         const nuevoMensaje = {
             texto: texto,
             remitente: currentUser.usuario,
@@ -586,7 +588,6 @@ window.subirFoto = async function(elementoInput) {
         if (resultado.success) {
             const URLPublica = resultado.data.url;
             
-            // 👁️ NUEVO (DOBLE TILDE): Agregado 'leido: false' para que las fotos también tengan checkmarks
             const nuevoMensaje = {
                 texto: "",
                 imagenUrl: URLPublica,
@@ -792,7 +793,79 @@ window.enviarReaccion = async function(idDoc, emoji, reaccionActual) {
     }
 };
 
-// ⌨️ ATAJOS DE TECLADO
+// ➕ FUNCIONES EXCLUSIVAS DEL SUPERADMIN PARA AGREGAR MIEMBROS EN VIVO
+window.abrirModalAgregarMiembro = async function() {
+    if (!activeChatId) return;
+    const listContainer = document.getElementById("add-member-users-list");
+    if (!listContainer) return;
+    
+    listContainer.innerHTML = "<p style='padding:10px;'>Buscando familiares disponibles...</p>";
+    
+    const mAdd = document.getElementById("modal-add-miembro");
+    if (mAdd) mAdd.classList.remove("hidden");
+
+    try {
+        const chatDoc = await getDoc(doc(db, "chats", activeChatId));
+        const participantesActuales = chatDoc.data().participantes || [];
+
+        const snap = await getDocs(collection(db, "usuarios"));
+        listContainer.innerHTML = "";
+        let hayAlguienParaAgregar = false;
+
+        snap.forEach(docSnap => {
+            const u = docSnap.data().usuario;
+            if (!participantesActuales.includes(u)) {
+                hayAlguienParaAgregar = true;
+                const item = document.createElement("label");
+                item.className = "checklist-item";
+                item.innerHTML = `<input type="checkbox" class="add-member-checkbox" value="${u}"> <span>👤 ${u}</span>`;
+                listContainer.appendChild(item);
+            }
+        });
+
+        if (!hayAlguienParaAgregar) {
+            listContainer.innerHTML = "<p style='color:#667781; padding:10px; font-size:0.9rem;'>Toda la familia ya es miembro de este grupo. ¡Están todos!</p>";
+        }
+    } catch(e) {
+        console.error("Error al listar miembros:", e);
+    }
+};
+
+window.cerrarModalAgregarMiembro = function() {
+    const mAdd = document.getElementById("modal-add-miembro");
+    if (mAdd) mAdd.classList.add("hidden");
+};
+
+window.confirmarAgregarMiembros = async function() {
+    const checkboxes = document.querySelectorAll(".add-member-checkbox:checked");
+    if (checkboxes.length === 0) return alert("Por favor, selecciona al menos un familiar.");
+
+    const nuevosMiembros = [];
+    checkboxes.forEach(cb => nuevosMiembros.push(cb.value));
+
+    try {
+        const chatRef = doc(db, "chats", activeChatId);
+        
+        await updateDoc(chatRef, {
+            participantes: arrayUnion(...nuevosMiembros)
+        });
+
+        await addDoc(collection(db, "chats", activeChatId, "mensajes"), {
+            texto: `📢 El administrador sumó al grupo a: ${nuevosMiembros.join(", ")}`,
+            remitente: "Sistema",
+            fecha: serverTimestamp(),
+            leido: false
+        });
+
+        cerrarModalAgregarMiembro();
+        alert("¡Familiares agregados correctamente!");
+    } catch (e) {
+        alert("Error al intentar agregar miembros a la base de datos.");
+        console.error(e);
+    }
+};
+
+// ATAJOS DE TECLADO
 document.addEventListener("keydown", function(e) {
     if (e.key === "Enter") {
         const msgIn = document.getElementById("msg-input");
@@ -807,18 +880,16 @@ document.addEventListener("keydown", function(e) {
     }
 });
 
-// ⚡ INICIALIZACIÓN CORREGIDA (Registra el Service Worker y pide permisos)
+// ⚡ INICIALIZACIÓN
 async function inicializarApp() {
     try { await verificarYCrearUsuarioDefecto(); } catch (err) {}
     
-    // 1️⃣ REGISTRAR EL SERVICE WORKER (¡Esto era lo que faltaba para activar las alertas!)
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js')
             .then(reg => console.log('Service Worker registrado con éxito en el ámbito:', reg.scope))
             .catch(err => console.error('Fallo al registrar Service Worker:', err));
     }
     
-    // 2️⃣ Solicitud de permisos flotantes nativos al usuario
     if ('Notification' in window && Notification.permission === 'default') {
         Notification.requestPermission().then(permiso => {
             if (permiso === 'granted') {
