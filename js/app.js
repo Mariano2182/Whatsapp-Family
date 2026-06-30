@@ -193,18 +193,20 @@ function escucharListaDeChats() {
     });
 }
 
-async function abrirSalaChat(chatId, nombreChat, subetiqueta) {
+async function abrirSalaChat(chatId, nombreChat, subetiqueta, participantesArr = []) {
     activeChatId = chatId;
     cancelarRespuesta();
-// Dentro de abrirSalaChat, abajo de: activeChatId = chatId;
-const btnAgregar = document.getElementById("btn-agregar-integrante");
-if (btnAgregar) {
-    if (subetiqueta.includes("Grupo") && (currentUser.rol === "admin" || currentUser.rol === "superadmin")) {
-        btnAgregar.classList.remove("hidden");
-    } else {
-        btnAgregar.classList.add("hidden");
+
+    // Dentro de abrirSalaChat, abajo de: activeChatId = chatId;
+    const btnAgregar = document.getElementById("btn-agregar-integrante");
+    if (btnAgregar) {
+        if (subetiqueta.includes("Grupo") && (currentUser.rol === "admin" || currentUser.rol === "superadmin")) {
+            btnAgregar.classList.remove("hidden");
+        } else {
+            btnAgregar.classList.add("hidden");
+        }
     }
-}
+
     const elLista = document.getElementById("chats-list-view");
     const elSala = document.getElementById("chat-room-view");
     if (elLista) elLista.classList.add("hidden");
@@ -213,7 +215,15 @@ if (btnAgregar) {
     const titleEl = document.getElementById("active-chat-title");
     const statusEl = document.getElementById("active-chat-status");
     if (titleEl) titleEl.innerText = nombreChat;
-    if (statusEl) statusEl.innerText = `• ${subetiqueta}`;
+    
+    // 🌟 INTEGRADO: Si es grupo y tiene participantes, muestra cuántos y quiénes son
+    if (statusEl) {
+        if (subetiqueta.includes("Grupo") && participantesArr && participantesArr.length > 0) {
+            statusEl.innerText = `• ${participantesArr.length} integrantes: ${participantesArr.join(", ")}`;
+        } else {
+            statusEl.innerText = `• ${subetiqueta}`;
+        }
+    }
 
     if (unsubscribeChatMessages) unsubscribeChatMessages();
 
@@ -347,52 +357,6 @@ if (btnAgregar) {
         chatBox.scrollTop = chatBox.scrollHeight;
     });
 }
-
-async function login() {
-    const elUser = document.getElementById("usuario");
-    const elPass = document.getElementById("password");
-    const errorBox = document.getElementById("error") || document.getElementById("login-error");
-
-    if (errorBox) errorBox.innerText = "";
-
-    if (!elUser || !elPass) {
-        alert("Error de diseño: No se encontraron los campos en el HTML.");
-        return;
-    }
-
-    const usuario = elUser.value.trim();
-    const password = elPass.value.trim();
-
-    if (!usuario || !password) {
-        if (errorBox) errorBox.innerText = "Escribe tu usuario y contraseña.";
-        return;
-    }
-
-    try {
-        const user = await loginUser(usuario, password);
-        currentUser = user;
-        localStorage.setItem("user", JSON.stringify(user));
-        mostrarPantallaSegunRol(user);
-    } catch(e) {
-        if (errorBox) errorBox.innerText = e.message;
-        else alert("Error al ingresar: " + e.message);
-    }
-}
-
-async function enviarMensaje() {
-    const input = document.getElementById("msg-input");
-    if (!input) return;
-    const texto = input.value.trim();
-    if (!texto || !activeChatId) return;
-
-    try {
-        // 👁️ NUEVO (DOBLE TILDE): Agregado el campo 'leido: false' por defecto
-        const nuevoMensaje = {
-            texto: texto,
-            remitente: currentUser.usuario,
-            fecha: serverTimestamp(),
-            leido: false
-        };
 
         if (replyTarget) nuevoMensaje.replyTo = replyTarget;
 
