@@ -887,5 +887,5 @@ window.ejecutarAgregarIntegrantes = async function() {
     } catch (err) {
         alert("No se pudieron añadir los integrantes: " + err.message);
     }
-};
+}
 inicializarApp();
