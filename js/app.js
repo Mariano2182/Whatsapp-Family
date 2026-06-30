@@ -486,12 +486,13 @@ window.crearGrupoConfirmar = async function() {
 
         const docRef = await addDoc(collection(db, "chats"), nuevoGrupo);
         cerrarModalGrupo();
-        abrirSalaChat(docRef.id, nameInput, "Grupo familiar");
+        
+        // 🌟 AGREGADO: Pasamos el array de participantes al abrir la sala
+        abrirSalaChat(docRef.id, nameInput, "Grupo familiar", participantes);
     } catch(e) {
         alert("Error al crear el grupo.");
     }
 };
-
 window.abrirModalDM = async function() {
     const listContainer = document.getElementById("dm-users-list");
     if (!listContainer) return;
