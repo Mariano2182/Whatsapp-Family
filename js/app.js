@@ -4,6 +4,23 @@ import { loginUser, verificarYCrearUsuarioDefecto, registrarNuevoUsuario, actual
 import { messaging } from "./firebase.js"; // Asegúrate de exportar esto desde tu archivo firebase.js
 import { getToken } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging.js";
 
+async function enviarNotificacionOneSignal(titulo, mensaje) {
+    const data = {
+        app_id: "TU_APP_ID_AQUÍ",
+        included_segments: ['Subscribed Users'], // Envía a todos los que aceptaron
+        contents: { "en": mensaje },
+        headings: { "en": titulo }
+    };
+
+    await fetch("https://onesignal.com/api/v1/notifications", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Basic TU_API_KEY_DE_ONESIGNAL" // La encuentras en OneSignal Settings
+        },
+        body: JSON.stringify(data)
+    });
+}
 async function registrarTokenPush(usuario) {
     try {
         const token = await getToken(messaging, {
