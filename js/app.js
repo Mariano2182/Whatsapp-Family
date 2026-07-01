@@ -23,7 +23,8 @@ window.addEventListener('error', function(e) {
 });
 
 let currentUser = null;
-let activeChatId = null; 
+let activeChatId = null;
+let activeChatData = null;
 
 // Desuscriptores en tiempo real
 let unsubscribeChatsList = null;
@@ -219,6 +220,7 @@ async function abrirSalaChat(chatId, nombreChat, subetiqueta) {
     }
 
     const chatData = chatSnap.data();
+    activeChatData = chatData;
 
     if (!chatData.participantes.includes(currentUser.usuario)) {
         alert("No tienes permiso para ingresar a este chat.");
