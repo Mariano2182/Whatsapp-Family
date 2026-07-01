@@ -6,7 +6,7 @@ import { getToken } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-mes
 
 async function enviarNotificacionOneSignal(titulo, mensaje) {
     const data = {
-        app_id: "TU_APP_ID_AQUÍ",
+        app_id: "os_v2_app_tqjtrh746zc7toe7dp5rkzyqrdrjh5tasryultvpryiqurqray6y4wjdpyi2f7qmtubbdlfhrd5bq3aaage5ychpipw6zwqqg2btyjq",
         included_segments: ['Subscribed Users'], // Envía a todos los que aceptaron
         contents: { "en": mensaje },
         headings: { "en": titulo }
