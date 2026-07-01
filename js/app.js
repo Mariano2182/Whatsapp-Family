@@ -16,7 +16,7 @@ async function enviarNotificacionOneSignal(titulo, mensaje) {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
-            "Authorization": "Basic TU_API_KEY_DE_ONESIGNAL" // La encuentras en OneSignal Settings
+            "Authorization": "10c6d5a4-905c-417b-a4ab-a7f477997459" // La encuentras en OneSignal Settings
         },
         body: JSON.stringify(data)
     });
