@@ -530,6 +530,87 @@ window.crearGrupoConfirmar = async function() {
     }
 };
 
+window.abrirModalAgregarIntegrantes = async function () {
+
+    if (!activeChatId || !activeChatData) return;
+
+    const lista = document.getElementById("agregar-integrantes-list");
+
+    lista.innerHTML = "Cargando usuarios...";
+
+    document.getElementById("modal-agregar-integrantes").classList.remove("hidden");
+
+    const snap = await getDocs(collection(db,"usuarios"));
+
+    lista.innerHTML = "";
+
+    snap.forEach(docSnap=>{
+
+        const usuario = docSnap.data().usuario;
+
+        if (
+            usuario !== currentUser.usuario &&
+            !activeChatData.participantes.includes(usuario)
+        ){
+
+            lista.innerHTML += `
+                <label class="checklist-item">
+                    <input
+                        type="checkbox"
+                        value="${usuario}"
+                        class="nuevo-integrante">
+                    ${usuario}
+                </label>
+            `;
+
+        }
+
+    });
+
+}
+
+window.confirmarAgregarIntegrantes = async function(){
+
+    const checks=document.querySelectorAll(".nuevo-integrante:checked");
+
+    if(checks.length===0){
+        alert("Selecciona al menos un usuario.");
+        return;
+    }
+
+    const nuevos=[];
+
+    checks.forEach(c=>{
+
+        nuevos.push(c.value);
+
+    });
+
+    await updateDoc(
+
+        doc(db,"chats",activeChatId),
+
+        {
+
+            participantes:arrayUnion(...nuevos)
+
+        }
+
+    );
+
+    document
+        .getElementById("modal-agregar-integrantes")
+        .classList.add("hidden");
+
+    activeChatData.participantes.push(...nuevos);
+
+    document
+        .getElementById("active-chat-status")
+        .innerText =
+        `• Grupo familiar · ${activeChatData.participantes.length} integrantes`;
+
+}
+
 window.abrirModalDM = async function() {
     const listContainer = document.getElementById("dm-users-list");
     if (!listContainer) return;
