@@ -1,7 +1,27 @@
 import { db } from "./firebase.js";
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, deleteDoc, where, getDocs, updateDoc, deleteField, arrayUnion } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 import { loginUser, verificarYCrearUsuarioDefecto, registrarNuevoUsuario, actualizarNombreUsuario, eliminarUsuario, cambiarPasswordUsuario } from "./auth.js";
+import { messaging } from "./firebase.js"; // Asegúrate de exportar esto desde tu archivo firebase.js
+import { getToken } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging.js";
 
+async function registrarTokenPush(usuario) {
+    try {
+        const token = await getToken(messaging, {
+            vapidKey: "BALu-Lw09JhiDXBrpvGBPei4gM1YX4QKatJBxVt2zYSgtn2l_LHmPGEA_iGf6Y1LTxOGyJV9sE3G-6EMfualKn0"
+        });
+
+        if (token) {
+            // Guardamos el token en la base de datos dentro del perfil del usuario
+            // Esto es vital para saber a qué celular enviar el mensaje después
+            await updateDoc(doc(db, "usuarios", usuario.id), {
+                tokenPush: token
+            });
+            console.log("Token de dispositivo guardado con éxito.");
+        }
+    } catch (error) {
+        console.error("Error al obtener token push:", error);
+    }
+}
 // 🚨 DETECTOR DE ERRORES GLOBAL
 window.addEventListener('error', function(e) {
     alert("⚠️ Error detectado:\n" + e.message + "\n\nArchivo: " + e.filename + "\nLínea: " + e.lineno);
