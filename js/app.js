@@ -1,5 +1,20 @@
 import { db } from "./firebase.js";
-import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, deleteDoc, where, getDocs, updateDoc, deleteField } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+import {
+    collection,
+    addDoc,
+    query,
+    orderBy,
+    onSnapshot,
+    serverTimestamp,
+    doc,
+    deleteDoc,
+    where,
+    getDocs,
+    getDoc,
+    updateDoc,
+    deleteField,
+    arrayUnion
+} from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 import { loginUser, verificarYCrearUsuarioDefecto, registrarNuevoUsuario, actualizarNombreUsuario, eliminarUsuario, cambiarPasswordUsuario } from "./auth.js";
 
 // 🚨 DETECTOR DE ERRORES EN PANTALLA (Ideal para ver fallas desde el celular)
@@ -194,6 +209,22 @@ function escucharListaDeChats() {
 }
 
 async function abrirSalaChat(chatId, nombreChat, subetiqueta) {
+
+    const chatRef = doc(db, "chats", chatId);
+    const chatSnap = await getDoc(chatRef);
+
+    if (!chatSnap.exists()) {
+        alert("El chat ya no existe.");
+        return;
+    }
+
+    const chatData = chatSnap.data();
+
+    if (!chatData.participantes.includes(currentUser.usuario)) {
+        alert("No tienes permiso para ingresar a este chat.");
+        return;
+    }
+
     activeChatId = chatId;
     cancelarRespuesta();
 
@@ -206,7 +237,20 @@ async function abrirSalaChat(chatId, nombreChat, subetiqueta) {
     const statusEl = document.getElementById("active-chat-status");
     if (titleEl) titleEl.innerText = nombreChat;
     if (statusEl) statusEl.innerText = `• ${subetiqueta}`;
+const btnAgregar = document.getElementById("btn-agregar-integrantes");
 
+if (btnAgregar) {
+
+    if (
+        currentUser.rol === "superadmin" &&
+        chatData.tipo === "grupo"
+    ) {
+        btnAgregar.classList.remove("hidden");
+    } else {
+        btnAgregar.classList.add("hidden");
+    }
+
+}
     if (unsubscribeChatMessages) unsubscribeChatMessages();
 
     const q = query(collection(db, "chats", chatId, "mensajes"), orderBy("fecha", "asc"));
