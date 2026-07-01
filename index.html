@@ -279,10 +279,31 @@
         </div>
 
         <div id="chat-room-view" class="view-layout chat-interface hidden">
-            <div class="app-header">
-                <div class="title-area" style="flex-direction: row; align-items: center; gap: 10px;">
-                    <button onclick="volverAListaChats()" style="font-size: 1.2rem; padding: 4px 8px;">⬅</button>
-                    <div>
+            <header class="chat-header">
+
+    <button onclick="volverAListaChats()">
+        ←
+    </button>
+
+    <div style="flex:1">
+
+        <div id="active-chat-title"></div>
+
+        <div id="active-chat-status"></div>
+
+    </div>
+
+    <button
+        id="btn-agregar-integrantes"
+        class="hidden"
+        onclick="abrirModalAgregarIntegrantes()"
+        title="Agregar integrante">
+
+        ➕
+
+    </button>
+
+</header>
                         <span id="active-chat-title" class="main-title">Nombre del Chat</span>
                         <span id="active-chat-status" class="sub-title">• En línea</span>
                     </div>
@@ -364,7 +385,41 @@
             </div>
         </div>
     </div>
+<div id="modal-grupo">
+...
+</div>
 
-    <script type="module" src="./js/app.js"></script>
+<div id="modal-dm">
+...
+</div>
+
+<!-- NUEVO -->
+
+<div id="modal-agregar-integrantes" class="modal hidden">
+
+    <div class="modal-content">
+
+        <h3>Agregar integrantes</h3>
+
+        <div
+            id="agregar-integrantes-list"
+            style="max-height:300px;overflow:auto;">
+        </div>
+
+        <br>
+
+        <button onclick="confirmarAgregarIntegrantes()">
+            Agregar
+        </button>
+
+        <button onclick="document.getElementById('modal-agregar-integrantes').classList.add('hidden')">
+            Cancelar
+        </button>
+
+    </div>
+
+</div>
+
+<script type="module" src="/js/app.js"></script>
 </body>
 </html>
