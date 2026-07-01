@@ -4,23 +4,6 @@ import { loginUser, verificarYCrearUsuarioDefecto, registrarNuevoUsuario, actual
 import { messaging } from "./firebase.js"; // Asegúrate de exportar esto desde tu archivo firebase.js
 import { getToken } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging.js";
 
-async function enviarNotificacionOneSignal(titulo, mensaje) {
-    const data = {
-        app_id: "os_v2_app_tqjtrh746zc7toe7dp5rkzyqrdrjh5tasryultvpryiqurqray6y4wjdpyi2f7qmtubbdlfhrd5bq3aaage5ychpipw6zwqqg2btyjq",
-        included_segments: ['Subscribed Users'], // Envía a todos los que aceptaron
-        contents: { "en": mensaje },
-        headings: { "en": titulo }
-    };
-
-    await fetch("https://onesignal.com/api/v1/notifications", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "Authorization": "10c6d5a4-905c-417b-a4ab-a7f477997459" // La encuentras en OneSignal Settings
-        },
-        body: JSON.stringify(data)
-    });
-}
 async function registrarTokenPush(usuario) {
     try {
         const token = await getToken(messaging, {
@@ -877,6 +860,23 @@ document.addEventListener("keydown", function(e) {
         }
     }
 });
+async function enviarNotificacionOneSignal(titulo, mensaje) {
+    const data = {
+        app_id: "os_v2_app_tqjtrh746zc7toe7dp5rkzyqrdrjh5tasryultvpryiqurqray6y4wjdpyi2f7qmtubbdlfhrd5bq3aaage5ychpipw6zwqqg2btyjq",
+        included_segments: ['Subscribed Users'], // Envía a todos los que aceptaron
+        contents: { "en": mensaje },
+        headings: { "en": titulo }
+    };
+
+    await fetch("https://onesignal.com/api/v1/notifications", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "10c6d5a4-905c-417b-a4ab-a7f477997459" // La encuentras en OneSignal Settings
+        },
+        body: JSON.stringify(data)
+    });
+}
 
 // ⚡ INICIALIZACIÓN
 async function inicializarApp() {
