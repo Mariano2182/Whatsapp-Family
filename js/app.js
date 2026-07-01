@@ -376,6 +376,11 @@ window.login = async function login() {
         const user = await loginUser(usuario, password);
         currentUser = user;
         localStorage.setItem("user", JSON.stringify(user));
+
+        // 🔔 AQUÍ ESTÁ EL CAMBIO:
+        // Registramos el dispositivo para recibir alertas push antes de mostrar la app
+        await registrarTokenPush(user); 
+        
         mostrarPantallaSegunRol(user);
     } catch(e) {
         if (errorBox) errorBox.innerText = e.message;
