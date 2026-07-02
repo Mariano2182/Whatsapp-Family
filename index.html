@@ -9,7 +9,7 @@
 
     <script>
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js')
+        navigator.serviceWorker.register('.sw.js')
           .then(() => console.log("Aplicación lista para instalar"))
           .catch(err => console.log("Error registrando PWA:", err));
       }
@@ -137,7 +137,7 @@
             <p>Ingresa tu cuenta asignada para empezar a platicar</p>
             <input type="text" id="usuario" placeholder="Nombre de usuario" autocomplete="username">
             <input type="password" id="password" placeholder="Contraseña" autocomplete="current-password">
-            <button onclick="login()">Ingresar</button>
+            <button id="btn-login" onclick="console.log('¡Hola, el botón funciona!'); login();">Ingresar</button>
             <div id="error" class="error-msg"></div>
         </div>
 
