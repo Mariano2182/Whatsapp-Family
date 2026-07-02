@@ -853,7 +853,7 @@ async function inicializarApp() {
     try { await verificarYCrearUsuarioDefecto(); } catch (err) {}
     
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js')
+        navigator.serviceWorker.register('sw.js')
             .then(reg => console.log('Service Worker registrado'))
             .catch(err => console.error('Fallo al registrar:', err));
     }
@@ -874,4 +874,10 @@ async function inicializarApp() {
         localStorage.removeItem("user");
     }
 }
+document.addEventListener("DOMContentLoaded", () => {
+    const btnLogin = document.getElementById("btn-login");
+    if (btnLogin) {
+        btnLogin.addEventListener("click", window.login);
+    }
+});
 inicializarApp();
