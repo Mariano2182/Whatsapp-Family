@@ -1,5 +1,5 @@
 import { db } from "./firebase.js";
-import { collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+import { collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc, collectionGroup } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
 export async function sha256(text) {
     const msgBuffer = new TextEncoder().encode(text);
@@ -9,7 +9,6 @@ export async function sha256(text) {
 }
 
 export async function loginUser(usuario, password) {
-    // Forzamos minúsculas para que coincida siempre con el registro
     const usuarioLimpio = (typeof usuario === 'string') ? usuario.trim().toLowerCase() : String(usuario || "").trim().toLowerCase();
     
     if (!usuarioLimpio) throw new Error("El nombre de usuario no puede estar vacío");
@@ -65,11 +64,12 @@ export async function actualizarNombreUsuario(usuarioActual, nuevoUsuario) {
     
     await updateDoc(userDocRef, { usuario: nuevoLimpio });
 
-    const qMensajes = query(collection(db, "mensajes"), where("remitente", "==", actualLimpio));
+    // Corrección crítica: Se usa collectionGroup para encontrar todos los mensajes en subcolecciones
+    const qMensajes = query(collectionGroup(db, "mensajes"), where("remitente", "==", actualLimpio));
     const snapMensajes = await getDocs(qMensajes);
     
     const promesasActualizacion = snapMensajes.docs.map(msgDoc => {
-        const msgRef = doc(db, "mensajes", msgDoc.id);
+        const msgRef = doc(db, msgDoc.ref.path); // Aseguramos usar el path completo
         return updateDoc(msgRef, { remitente: nuevoLimpio });
     });
     
