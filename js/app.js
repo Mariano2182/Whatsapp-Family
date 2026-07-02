@@ -1,29 +1,10 @@
 import { db } from "./firebase.js";
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, deleteDoc, where, getDocs, updateDoc, deleteField, arrayUnion } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 import { loginUser, verificarYCrearUsuarioDefecto, registrarNuevoUsuario, actualizarNombreUsuario, eliminarUsuario, cambiarPasswordUsuario } from "./auth.js";
-import { messaging } from "./firebase.js"; 
-import { getToken } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging.js";
 
-async function registrarTokenPush(usuario) {
-    try {
-        const token = await getToken(messaging, {
-            vapidKey: "BALu-Lw09JhiDXBrpvGBPei4gM1YX4QKatJBxVt2zYSgtn2l_LHmPGEA_iGf6Y1LTxOGyJV9sE3G-6EMfualKn0"
-        });
-
-        if (token) {
-            await updateDoc(doc(db, "usuarios", usuario.id), {
-                tokenPush: token
-            });
-            console.log("Token de dispositivo guardado con éxito.");
-        }
-    } catch (error) {
-        console.error("Error al obtener token push:", error);
-    }
-}
-
-// DETECTOR DE ERRORES GLOBAL
+// 🚨 DETECTOR DE ERRORES GLOBAL
 window.addEventListener('error', function(e) {
-    console.error("Error detectado: ", e.message);
+    alert("⚠️ Error detectado:\n" + e.message + "\n\nArchivo: " + e.filename + "\nLínea: " + e.lineno);
 });
 
 let currentUser = null;
@@ -35,7 +16,7 @@ let listaIniciada = false;
 let replyTarget = null; 
 const IMGBB_API_KEY = "4a52316c7553d2229d68717ee77998fa";
 
-// SINTETIZADOR DE AUDIO
+// 🔊 SINTETIZADOR DE AUDIO
 function reproducirSonidoNotificacion() {
     try {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -102,6 +83,7 @@ function mostrarPantallaSegunRol(user) {
     escucharListaDeChats();
 }
 
+// 📌 TU FUNCIÓN ESCUCHAR CHATS
 function escucharListaDeChats() {
     if (!currentUser) return;
     if (unsubscribeChatsList) unsubscribeChatsList();
@@ -145,6 +127,7 @@ function escucharListaDeChats() {
                     subetiqueta = "Chat privado";
                 }
 
+                // 🌟 PASANDO LOS PARTICIPANTES A LA FUNCIÓN AL HACER CLIC
                 divRow.onclick = () => abrirSalaChat(chat.id, nombreMostrar, subetiqueta, chat.participantes);
                 
                 divRow.innerHTML = `
@@ -195,6 +178,7 @@ function escucharListaDeChats() {
     });
 }
 
+// 📌 TU FUNCIÓN ABRIR SALA CHAT
 async function abrirSalaChat(chatId, nombreChat, subetiqueta, participantesArr = []) {
     activeChatId = chatId;
     cancelarRespuesta();
@@ -217,6 +201,7 @@ async function abrirSalaChat(chatId, nombreChat, subetiqueta, participantesArr =
     const statusEl = document.getElementById("active-chat-status");
     if (titleEl) titleEl.innerText = nombreChat;
     
+    // 🌟 RENDERIZADO DINÁMICO DEL ENCABEZADO
     if (statusEl) {
         if (subetiqueta.includes("Grupo") && participantesArr && participantesArr.length > 0) {
             statusEl.innerText = `• ${participantesArr.length} integrantes: ${participantesArr.join(", ")}`;
@@ -350,10 +335,11 @@ async function abrirSalaChat(chatId, nombreChat, subetiqueta, participantesArr =
     });
 }
 
+// --- VINCULACIONES GLOBALES (Solucionan el ReferenceError del Botón) ---
 window.login = async function login() {
     const elUser = document.getElementById("usuario");
     const elPass = document.getElementById("password");
-    const errorBox = document.getElementById("error");
+    const errorBox = document.getElementById("error") || document.getElementById("login-error");
 
     if (errorBox) errorBox.innerText = "";
     if (!elUser || !elPass) return;
@@ -370,8 +356,6 @@ window.login = async function login() {
         const user = await loginUser(usuario, password);
         currentUser = user;
         localStorage.setItem("user", JSON.stringify(user));
-
-        await registrarTokenPush(user); 
         mostrarPantallaSegunRol(user);
     } catch(e) {
         if (errorBox) errorBox.innerText = e.message;
@@ -403,7 +387,9 @@ window.enviarMensaje = async function enviarMensaje() {
             ultimaFecha: serverTimestamp(),
             ultimoRemitente: currentUser.usuario 
         });
-    } catch (e) { console.error("Error sending message:", e); }
+    } catch (e) {
+        console.error("Error sending message:", e);
+    }
 };
 
 window.logout = function(){
@@ -454,6 +440,7 @@ window.cerrarModalGrupo = function() {
     if (gInput) gInput.value = "";
 };
 
+// 📌 TU FUNCIÓN CREAR GRUPO
 window.crearGrupoConfirmar = async function() {
     const gInput = document.getElementById("group-name-input");
     const nameInput = gInput ? gInput.value.trim() : "";
@@ -477,6 +464,7 @@ window.crearGrupoConfirmar = async function() {
 
         const docRef = await addDoc(collection(db, "chats"), nuevoGrupo);
         cerrarModalGrupo();
+        // 🌟 PASANDO LOS PARTICIPANTES
         abrirSalaChat(docRef.id, nameInput, "Grupo familiar", participantes);
     } catch(e) { alert("Error al crear el grupo."); }
 };
@@ -765,7 +753,7 @@ window.enviarReaccion = async function(idDoc, emoji, reaccionActual) {
     } catch (e) { console.error("Error gestionando reacción:", e); }
 };
 
-// EXCLUSIVAS DE AGREGAR MIEMBROS
+// --- FUNCIONES EXCLUSIVAS DE AGREGAR MIEMBROS ---
 window.abrirModalAgregarIntegrante = async function() {
     const modal = document.getElementById("modal-agregar-integrante");
     const container = document.getElementById("lista-usuarios-agregar");
@@ -833,7 +821,7 @@ window.ejecutarAgregarIntegrantes = async function() {
     }
 };
 
-// ATAJOS DE TECLADO
+// ⌨️ ATAJOS DE TECLADO
 document.addEventListener("keydown", function(e) {
     if (e.key === "Enter") {
         const msgIn = document.getElementById("msg-input");
@@ -848,12 +836,12 @@ document.addEventListener("keydown", function(e) {
     }
 });
 
-// INICIALIZACIÓN
+// ⚡ INICIALIZACIÓN
 async function inicializarApp() {
     try { await verificarYCrearUsuarioDefecto(); } catch (err) {}
     
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js')
+        navigator.serviceWorker.register('./sw.js')
             .then(reg => console.log('Service Worker registrado'))
             .catch(err => console.error('Fallo al registrar:', err));
     }
@@ -874,10 +862,4 @@ async function inicializarApp() {
         localStorage.removeItem("user");
     }
 }
-document.addEventListener("DOMContentLoaded", () => {
-    const btnLogin = document.getElementById("btn-login");
-    if (btnLogin) {
-        btnLogin.addEventListener("click", window.login);
-    }
-});
 inicializarApp();
