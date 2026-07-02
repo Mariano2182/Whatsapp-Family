@@ -36,13 +36,13 @@
         .login-box h2 { margin-bottom: 8px; color: var(--wa-green-dark); font-size: 1.6rem; }
         .login-box p { color: #667781; font-size: 0.9rem; margin-bottom: 25px; text-align: center; }
         .login-box input { width: 100%; padding: 12px 15px; margin-bottom: 15px; border: none; border-radius: 8px; outline: none; font-size: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .login-box button { width: 100%; padding: 12px; background-color: var(--wa-green-dark); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1rem; transition: background 0.2s; }
+        .login-box button { width: 100%; padding: 12px; background-color: var(--wa-green-dark); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1rem; transition: background-color 0.2s; }
         .login-box button:hover { background-color: #006653; }
         .error-msg { color: #ea0038; margin-top: 12px; font-size: 0.9em; }
 
         /* Estructura */
         .view-layout { display: flex; flex-direction: column; height: 100%; background-color: #ffffff; }
-        .app-header { background: var(--wa-green-dark); padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 10; }
+        .app-header { background: var(--wa-green-dark); padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 50; }
         .app-header .title-area { display: flex; flex-direction: column; flex: 1; margin-left: 10px; }
         .app-header .main-title { font-weight: bold; font-size: 1.2rem; }
         .app-header .sub-title { font-size: 0.75rem; color: #c1ece3; margin-top: 2px; }
@@ -52,7 +52,7 @@
 
         /* Pantalla 1: Lista */
         .chats-actions-bar { display: flex; gap: 8px; padding: 12px 16px; background: #f0f2f5; border-bottom: 1px solid #e1e1e1; }
-        .action-trigger-btn { flex: 1; padding: 10px; border: none; border-radius: 20px; background: white; color: #54656f; font-size: 0.88rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .action-trigger-btn { flex: 1; padding: 10px; border: none; border-radius: 20px; background: white; color: #54656f; font-size: 0.88rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
         .action-trigger-btn:hover { background: #e9ebeb; color: var(--text-main); }
         .chats-scroll-list { flex: 1; overflow-y: auto; background: white; }
         .chat-item-row { display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid #f0f2f5; cursor: pointer; transition: background 0.15s; }
@@ -64,7 +64,7 @@
 
         /* Pantalla 2: Chat Activo */
         .chat-interface { background-color: var(--bg-chat); }
-        .messages-container { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; background-image: radial-gradient(rgba(0,0,0,0.04) 1px, transparent 0); background-size: 24px 24px; }
+        .messages-container { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; background-image: radial-gradient(rgba(0,0,0,0.04) 1px, transparent 0); background-size: 20px 20px; }
         .msg { max-width: 80%; padding: 8px 12px; margin-bottom: 8px; font-size: 0.93rem; line-height: 1.4; position: relative; word-break: break-word; box-shadow: 0 1px 1px rgba(0,0,0,0.12); color: var(--text-main); }
         .msg-envio { background-color: var(--msg-sent); align-self: flex-end; border-radius: 8px 0px 8px 8px; }
         .msg-recepcion { background-color: var(--msg-received); align-self: flex-start; border-radius: 0px 8px 8px 8px; }
@@ -87,12 +87,12 @@
         .message-input { flex: 1; height: 42px; border-radius: 24px; border: none; padding: 0 18px; outline: none; font-size: 0.95rem; box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
         .attach-btn { background: none; border: none; font-size: 1.35rem; cursor: pointer; color: #54656f; display: flex; align-items: center; transition: color 0.2s; }
         .attach-btn:hover { color: var(--wa-green-dark); }
-        .send-btn { background-color: var(--wa-green-dark); color: white; border: none; border-radius: 50%; width: 42px; height: 42px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+        .send-btn { background-color: var(--wa-green-dark); color: white; border: none; border-radius: 50%; width: 42px; height: 42px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background-color 0.2s; }
         .send-btn:hover { background-color: #006653; }
 
         /* Modales Flotantes */
         .custom-modal-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: flex; justify-content: center; align-items: flex-end; z-index: 100; }
-        .modal-card { width: 100%; background: white; border-radius: 12px 12px 0 0; padding: 20px; max-height: 80%; display: flex; flex-direction: column; box-shadow: 0 -4px 15px rgba(0,0,0,0.1); }
+        .modal-card { width: 100%; background: white; border-radius: 12px 12px 0 0; padding: 20px; max-height: 80%; display: flex; flex-direction: column; box-shadow: 0 -4px 15px rgba(0,0,0,0.1); overflow-y: auto; }
         .modal-card h3 { color: var(--wa-green-dark); margin-bottom: 12px; font-size: 1.2rem; }
         .modal-input { width: 100%; padding: 10px 14px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 6px; outline: none; font-size: 0.95rem; }
         .users-checklist-box { flex: 1; overflow-y: auto; margin-bottom: 15px; max-height: 200px; }
@@ -109,6 +109,9 @@
         .admin-section { margin-top: 25px; padding-top: 20px; border-top: 1px solid #ddd; }
         .admin-section h3 { margin-bottom: 10px; font-size: 1.1rem; color: #333; }
         .admin-section input { padding: 10px; margin-right: 5px; border: 1px solid #ccc; border-radius: 6px; outline: none; }
+        .admin-input { flex: 1; min-width: 130px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; outline: none; }
+        .admin-input-register { padding: 10px 15px; background: var(--wa-green-dark); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: background-color 0.2s; }
+        .admin-input-register:hover { background-color: #006653; }
         .back-btn { margin-bottom: 15px; padding: 8px 14px; background: #667781; color: white; border: none; border-radius: 20px; cursor: pointer; align-self: flex-start; font-weight: bold; }
         .hidden { display: none !important; }
 
@@ -118,9 +121,9 @@
         .reply-btn { right: 32px !important; }
         .delete-btn { right: 8px !important; }
         .msg-reactions { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 5px; margin-bottom: 2px; }
-        .reaction-badge { background: #f0f2f5; padding: 2px 6px; border-radius: 12px; font-size: 0.75rem; box-shadow: 0 1px 2px rgba(0,0,0,0.1); display: inline-flex; align-items: center; gap: 2px; font-weight: bold; }
+        .reaction-badge { background: #f0f2f5; padding: 2px 6px; border-radius: 12px; font-size: 0.75rem; box-shadow: 0 1px 2px rgba(0,0,0,0.1); display: inline-flex; align-items: center; gap: 2px; font-weight: 600; }
         .msg-envio .reaction-badge { background: #ffffff; }
-        .reactions-picker { position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%); background: white; padding: 6px 10px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); display: flex; gap: 12px; z-index: 100; animation: popEmoji 0.15s ease-out; }
+        .reactions-picker { position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%); background: white; padding: 6px 10px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 200; }
         .reactions-picker span { font-size: 1.25rem; cursor: pointer; transition: transform 0.1s; }
         .reactions-picker span:hover { transform: scale(1.3); }
         .reactions-picker span.active-emo { background: #e1f5fe; border-radius: 50%; box-shadow: 0 0 0 3px #e1f5fe; }
@@ -132,8 +135,8 @@
         <div id="login-container" class="login-box">
             <h2>Chat Familiar</h2>
             <p>Ingresa tu cuenta asignada para empezar a platicar</p>
-            <input type="text" id="usuario" placeholder="Nombre de usuario">
-            <input type="password" id="password" placeholder="Contraseña">
+            <input type="text" id="usuario" placeholder="Nombre de usuario" autocomplete="username">
+            <input type="password" id="password" placeholder="Contraseña" autocomplete="current-password">
             <button onclick="login()">Ingresar</button>
             <div id="error" class="error-msg"></div>
         </div>
@@ -145,57 +148,57 @@
                     <span id="chats-user-info" class="sub-title">Cargando...</span>
                 </div>
                 <div class="header-actions">
-                    <button id="admin-btn" class="admin-btn-style hidden" onclick="abrirPanelAdmin()">⚙️ Admin</button>
-                    <button onclick="logout()">Salir</button>
+                    <button id="admin-btn" class="admin-btn-style hidden" onclick="abrirPanelAdmin()" aria-label="Abrir panel de administración">⚙️ Admin</button>
+                    <button onclick="logout()" aria-label="Cerrar sesión">Salir</button>
                 </div>
             </div>
             
             <div class="chats-actions-bar">
-                <button id="btn-crear-grupo-view" class="action-trigger-btn hidden" onclick="abrirModalGrupo()">👥 Crear Grupo</button>
-                <button class="action-trigger-btn" onclick="abrirModalDM()">💬 Nuevo Mensaje</button>
+                <button id="btn-crear-grupo-view" class="action-trigger-btn hidden" onclick="abrirModalGrupo()" aria-label="Crear nuevo grupo">👥 Crear Grupo</button>
+                <button class="action-trigger-btn" onclick="abrirModalDM()" aria-label="Iniciar nuevo mensaje directo">💬 Nuevo Mensaje</button>
             </div>
 
-            <div id="lista-chats-items" class="chats-scroll-list"></div>
+            <div id="lista-chats-items" class="chats-scroll-list" role="list"></div>
         </div>
 
         <div id="chat-room-view" class="view-layout chat-interface hidden">
             <div class="app-header">
-                <button onclick="volverAListaChats()">←</button>
+                <button onclick="volverAListaChats()" aria-label="Volver a la lista de chats">←</button>
                 <div class="title-area">
                     <span id="active-chat-title" class="main-title">Nombre del Chat</span>
                     <span id="active-chat-status" class="sub-title">• En línea</span>
                 </div>
-                <button id="btn-agregar-integrante" class="hidden" onclick="abrirModalAgregarIntegrante()" title="Agregar integrante">➕</button>
+                <button id="btn-agregar-integrante" class="hidden" onclick="abrirModalAgregarIntegrante()" title="Agregar integrante" aria-label="Agregar integrante al grupo">➕</button>
             </div>
             
-            <div class="messages-container" id="chat-box"></div>
+            <div class="messages-container" id="chat-box" role="log" aria-live="polite"></div>
 
             <div id="reply-preview-box" class="reply-preview-box hidden">
                 <div class="reply-preview-info">
                     <span id="reply-preview-user" class="reply-preview-user">Respondiendo a</span>
                     <span id="reply-preview-text" class="reply-preview-text">Mensaje citado...</span>
                 </div>
-                <span class="reply-preview-close" onclick="cancelarRespuesta()">×</span>
+                <span class="reply-preview-close" onclick="cancelarRespuesta()" role="button" tabindex="0" aria-label="Cancelar respuesta">×</span>
             </div>
 
             <div class="input-area">
-                <button class="attach-btn" onclick="abrirGaleria()" title="Elegir foto de la galería">📎</button>
+                <button class="attach-btn" onclick="abrirGaleria()" title="Elegir foto de la galería" aria-label="Adjuntar foto de galería">📎</button>
                 <input type="file" id="gallery-input" style="display: none;" onchange="subirFoto(this)" accept="image/*">
 
-                <button class="attach-btn" onclick="abrirCamara()" title="Tomar una foto en directo">📷</button>
+                <button class="attach-btn" onclick="abrirCamara()" title="Tomar una foto en directo" aria-label="Tomar foto con cámara">📷</button>
                 <input type="file" id="camera-input" style="display: none;" onchange="subirFoto(this)" accept="image/*" capture="environment">
                 
-                <input type="text" id="msg-input" class="message-input" placeholder="Escribe un mensaje...">
-                <button class="send-btn" onclick="enviarMensaje()">➤</button>
+                <input type="text" id="msg-input" class="message-input" placeholder="Escribe un mensaje..." autocomplete="off">
+                <button class="send-btn" onclick="enviarMensaje()" aria-label="Enviar mensaje">➤</button>
             </div>
         </div>
 
         <div id="modal-grupo" class="custom-modal-overlay hidden">
             <div class="modal-card">
                 <h3>Crear Grupo Familiar</h3>
-                <input type="text" id="group-name-input" class="modal-input" placeholder="Nombre del grupo (ej: Primos, Asado...)">
+                <input type="text" id="group-name-input" class="modal-input" placeholder="Nombre del grupo (ej: Primos, Asado...)" autocomplete="off">
                 <p style="font-size: 0.82rem; color: #667781; margin-bottom: 6px;">Selecciona los familiares:</p>
-                <div id="group-users-list" class="users-checklist-box"></div>
+                <div id="group-users-list" class="users-checklist-box" role="group"></div>
                 <div class="modal-buttons">
                     <button class="modal-btn-cancel" onclick="cerrarModalGrupo()">Cancelar</button>
                     <button class="modal-btn-action" onclick="crearGrupoConfirmar()">Crear</button>
@@ -207,7 +210,7 @@
             <div class="modal-card">
                 <h3>Iniciar Chat Privado</h3>
                 <p style="font-size: 0.82rem; color: #667781; margin-bottom: 10px;">Toca un familiar de la red para hablarle directamente:</p>
-                <div id="dm-users-list" class="users-checklist-box"></div>
+                <div id="dm-users-list" class="users-checklist-box" role="list"></div>
                 <div class="modal-buttons">
                     <button class="modal-btn-cancel" onclick="cerrarModalDM()">Cancelar</button>
                 </div>
@@ -217,7 +220,7 @@
         <div id="modal-agregar-integrante" class="custom-modal-overlay hidden">
             <div class="modal-card">
                 <h3>Agregar integrantes</h3>
-                <div id="lista-usuarios-agregar" class="users-checklist-box"></div>
+                <div id="lista-usuarios-agregar" class="users-checklist-box" role="group"></div>
                 <div class="modal-buttons">
                     <button class="modal-btn-cancel" onclick="cerrarModalAgregarIntegrante()">Cancelar</button>
                     <button class="modal-btn-action" onclick="ejecutarAgregarIntegrantes()">Agregar</button>
@@ -234,22 +237,22 @@
             <div class="admin-section">
                 <h3>Registrar Nuevo Familiar</h3>
                 <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;">
-                    <input type="text" id="reg-usuario" placeholder="Nombre de usuario" style="flex: 1; min-width: 130px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; outline: none;">
-                    <input type="password" id="reg-password" placeholder="Contraseña" style="flex: 1; min-width: 130px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; outline: none;">
+                    <input type="text" id="reg-usuario" placeholder="Nombre de usuario" class="admin-input" autocomplete="username">
+                    <input type="password" id="reg-password" placeholder="Contraseña" class="admin-input" autocomplete="new-password">
                     <select id="reg-rol" style="padding: 10px; border: 1px solid #ccc; border-radius: 6px; outline: none; background: white; height: 40px; font-size: 0.9rem;">
                         <option value="usuario">Usuario estándar</option>
                         <option value="admin">Admin (Crea grupos)</option>
                     </select>
-                    <button onclick="crearNuevoUsuarioAdmin()" style="padding: 10px 15px; background: var(--wa-green-dark); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; height: 40px;">Registrar</button>
+                    <button onclick="crearNuevoUsuarioAdmin()" class="admin-input-register">Registrar</button>
                 </div>
                 <div id="admin-reg-msg" style="margin-top: 10px; font-weight: bold; font-size: 0.9rem;"></div>
             </div>
             
             <div class="admin-section">
                 <h3>Modificar Nombre de Familiar</h3>
-                <input type="text" id="edit-usuario-actual" placeholder="Usuario actual">
-                <input type="text" id="edit-usuario-nuevo" placeholder="Nuevo nombre">
-                <button onclick="cambiarNombreFamiliar()" style="padding: 10px 15px; background: var(--wa-green-dark); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">Actualizar Nombre</button>
+                <input type="text" id="edit-usuario-actual" placeholder="Usuario actual" class="admin-input" autocomplete="off">
+                <input type="text" id="edit-usuario-nuevo" placeholder="Nuevo nombre" class="admin-input" autocomplete="off">
+                <button onclick="cambiarNombreFamiliar()" style="padding: 10px 15px; background: var(--wa-green-dark); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: background-color 0.2s;">Cambiar Nombre</button>
                 <div id="admin-msg" style="margin-top: 10px; font-weight: bold;"></div>
             </div>
         </div>
