@@ -1,3 +1,7 @@
+// 🌍 INTEGRACIÓN DE ONESIGNAL (No tocar las líneas de abajo)
+importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
+
+// Aquí empieza tu código original de 68 líneas...
 const CACHE_NAME = 'chat-familiar-v1';
 
 // 📦 1. INSTALACIÓN Y CACHÉ (Tu código original)
