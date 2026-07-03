@@ -17,22 +17,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat Familiar</title>
     
-    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-<script>
-  window.OneSignalDeferred = window.OneSignalDeferred || [];
-  window.OneSignalDeferred.push(async function(OneSignal) {
-    await OneSignal.init({
-      appId: "10c6d5a4-905c-417b-a4ab-a7f477997459", // 👈 Tu ID de OneSignal
-      notifyButton: {
-        enable: true, 
-      },
-      // 🚀 CLAVE: Le decimos que use SU PROPIO archivo para las alertas
-      // permitiendo que tu sw.js controle el usuario sin interferencias.
-      serviceWorkerPath: "OneSignalSDKWorker.js" 
-    });
-  });
-</script>
-    
         <style>
     :root {
         --bg-body: #f0f2f5;        /* Gris claro limpio y brillante para el exterior */
