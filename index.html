@@ -5,23 +5,17 @@
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#00a884">
 
+<!-- Registro del Service Worker -->
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js')
+      .then(() => console.log("Aplicación lista para instalar"))
+      .catch(err => console.log("Error registrando PWA:", err));
+  }
 </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat Familiar</title>
-    
-    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-<script>
-  window.OneSignalDeferred = window.OneSignalDeferred || [];
-  window.OneSignalDeferred.push(async function(OneSignal) {
-    await OneSignal.init({
-      appId: "10c6d5a4-905c-417b-a4ab-a7f477997459",
-      notifyButton: { enable: true },
-      // Obligamos a OneSignal a usar TU archivo.
-      serviceWorkerPath: "sw.js" 
-    });
-  });
-</script>
     
         <style>
     :root {
