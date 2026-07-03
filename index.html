@@ -22,11 +22,13 @@
   window.OneSignalDeferred = window.OneSignalDeferred || [];
   window.OneSignalDeferred.push(async function(OneSignal) {
     await OneSignal.init({
-      appId: "10c6d5a4-905c-417b-a4ab-a7f477997459", // 👈 Coloca aquí el ID de tu panel de OneSignal
+      appId: "TU_ONESIGNAL_APP_ID_AQUÍ", // 👈 Tu ID de OneSignal
       notifyButton: {
-        enable: true, // Esto creará un botón flotante para suscribirse
+        enable: true, 
       },
-      serviceWorkerPath: "sw.js" // 🚀 Obliga a OneSignal a respetar tu sw.js de 68 líneas
+      // 🚀 CLAVE: Le decimos que use SU PROPIO archivo para las alertas
+      // permitiendo que tu sw.js controle el usuario sin interferencias.
+      serviceWorkerPath: "OneSignalSDKWorker.js" 
     });
   });
 </script>
