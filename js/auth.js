@@ -9,23 +9,20 @@ export async function sha256(text) {
 }
 
 export async function loginUser(usuario, password) {
-    // Forzamos minúsculas para que coincida siempre con el registro
-    const usuarioLimpio = (typeof usuario === 'string') ? usuario.trim().toLowerCase() : String(usuario || "").trim().toLowerCase();
-    
+    const usuarioLimpio = (typeof usuario === 'string') ? usuario.trim() : String(usuario || "").trim();
     if (!usuarioLimpio) throw new Error("El nombre de usuario no puede estar vacío");
 
     const q = query(collection(db, "usuarios"), where("usuario", "==", usuarioLimpio));
     const querySnapshot = await getDocs(q);
-    
     if (querySnapshot.empty) throw new Error("Usuario no existe");
-    
+
     const docSnap = querySnapshot.docs[0];
     const userData = docSnap.data();
 
     const hash = await sha256(password);
     if (userData.passwordHash !== hash) throw new Error("Contraseña incorrecta");
 
-    return { id: docSnap.id, ...userData };
+    return userData;
 }
 
 export async function registrarNuevoUsuario(usuario, password, rol) {
@@ -77,6 +74,7 @@ export async function actualizarNombreUsuario(usuarioActual, nuevoUsuario) {
     return nuevoLimpio;
 }
 
+// MODIFICADO: Protege el usuario root 'marian'
 export async function eliminarUsuario(usuarioAEliminar) {
     const uLimpio = usuarioAEliminar.trim().toLowerCase();
     if (uLimpio === "marian") throw new Error("Filtro de seguridad: No puedes eliminar la cuenta raíz de superadmin.");
@@ -105,6 +103,7 @@ export async function cambiarPasswordUsuario(usuarioAEditar, nuevaPassword) {
     return true;
 }
 
+// MODIFICADO: Crea por defecto el usuario 'marian'
 export async function verificarYCrearUsuarioDefecto() {
     const querySnapshot = await getDocs(collection(db, "usuarios"));
     if (querySnapshot.empty) {
