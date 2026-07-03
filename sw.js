@@ -17,8 +17,6 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   const url = e.request.url;
-  
-  // 🚨 REGLA DE ORO: No interceptar bases de datos ni notificaciones
   if (url.includes('firestore.googleapis.com') || 
       url.includes('identitytoolkit.googleapis.com') || 
       url.includes('firebaseio.com') || 
