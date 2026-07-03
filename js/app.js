@@ -1,28 +1,33 @@
 import { db } from "./firebase.js";
-import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, deleteDoc, where, getDocs, updateDoc, deleteField, arrayUnion } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, deleteDoc, where, getDocs, updateDoc, deleteField } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 import { loginUser, verificarYCrearUsuarioDefecto, registrarNuevoUsuario, actualizarNombreUsuario, eliminarUsuario, cambiarPasswordUsuario } from "./auth.js";
 
-// 🚨 DETECTOR DE ERRORES GLOBAL
+// 🚨 DETECTOR DE ERRORES EN PANTALLA (Ideal para ver fallas desde el celular)
 window.addEventListener('error', function(e) {
     alert("⚠️ Error detectado:\n" + e.message + "\n\nArchivo: " + e.filename + "\nLínea: " + e.lineno);
 });
 
 let currentUser = null;
 let activeChatId = null; 
+
+// Desuscriptores en tiempo real
 let unsubscribeChatsList = null;
 let unsubscribeChatMessages = null;
 let unsubscribeUsuariosAdmin = null; 
+
 let listaIniciada = false; 
 let replyTarget = null; 
 const IMGBB_API_KEY = "4a52316c7553d2229d68717ee77998fa";
 
-// 🔊 SINTETIZADOR DE AUDIO
+// 🔊 FUNCIÓN SINTETIZADORA DE SONIDO (Estilo Notificación Móvil)
 function reproducirSonidoNotificacion() {
     try {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
         if (!AudioContextClass) return;
+        
         const context = new AudioContextClass();
         
+        // Tono 1
         const osc1 = context.createOscillator();
         const gain1 = context.createGain();
         osc1.type = 'sine';
@@ -34,6 +39,7 @@ function reproducirSonidoNotificacion() {
         osc1.start();
         osc1.stop(context.currentTime + 0.08);
         
+        // Tono 2
         setTimeout(() => {
             try {
                 const osc2 = context.createOscillator();
@@ -48,9 +54,12 @@ function reproducirSonidoNotificacion() {
                 osc2.stop(context.currentTime + 0.12);
             } catch(e2) {}
         }, 70);
-    } catch (e) { console.log("Audio retenido."); }
+    } catch (e) {
+        console.log("Audio retenido por el navegador.");
+    }
 }
 
+// Cambios de pantalla seguros (No se rompen si falta algún ID en tu HTML)
 function mostrarPantallaSegunRol(user) {
     const alternarOculto = (id, agregar) => {
         const el = document.getElementById(id);
@@ -83,7 +92,6 @@ function mostrarPantallaSegunRol(user) {
     escucharListaDeChats();
 }
 
-// 📌 TU FUNCIÓN ESCUCHAR CHATS
 function escucharListaDeChats() {
     if (!currentUser) return;
     if (unsubscribeChatsList) unsubscribeChatsList();
@@ -127,8 +135,7 @@ function escucharListaDeChats() {
                     subetiqueta = "Chat privado";
                 }
 
-                // 🌟 PASANDO LOS PARTICIPANTES A LA FUNCIÓN AL HACER CLIC
-                divRow.onclick = () => abrirSalaChat(chat.id, nombreMostrar, subetiqueta, chat.participantes);
+                divRow.onclick = () => abrirSalaChat(chat.id, nombreMostrar, subetiqueta);
                 
                 divRow.innerHTML = `
                     <div class="chat-avatar">${icono}</div>
@@ -141,17 +148,25 @@ function escucharListaDeChats() {
             });
         }
 
+        // 🚨 CONTROL DE ALERTAS, SONIDOS Y VIBRACIÓN DE NUEVOS MENSAJES
         if (listaIniciada) {
             snapshot.docChanges().forEach(change => {
                 if (change.type === "modified" || change.type === "added") {
                     const chatId = change.doc.id;
                     const chatData = change.doc.data();
                     
+                    // Solo alerta si el mensaje lo mandó otro Y si NO estamos viendo ese chat actualmente
                     if (chatData.ultimoRemitente && chatData.ultimoRemitente !== currentUser.usuario && activeChatId !== chatId) {
+                        
+                        // 🔊 Sonido
                         reproducirSonidoNotificacion();
                         
-                        if ('vibrate' in navigator) navigator.vibrate([100, 50, 100]);
+                        // 📳 Vibración en primer plano
+                        if ('vibrate' in navigator) {
+                            navigator.vibrate([100, 50, 100]);
+                        }
                         
+                        // 💬 Alerta Flotante en Pantalla (Notificación de Sistema vía Service Worker)
                         if ('Notification' in window && Notification.permission === 'granted') {
                             let tituloAlerta = `Mensaje de ${chatData.ultimoRemitente}`;
                             if (chatData.tipo === "grupo") {
@@ -178,19 +193,9 @@ function escucharListaDeChats() {
     });
 }
 
-// 📌 TU FUNCIÓN ABRIR SALA CHAT
-async function abrirSalaChat(chatId, nombreChat, subetiqueta, participantesArr = []) {
+async function abrirSalaChat(chatId, nombreChat, subetiqueta) {
     activeChatId = chatId;
     cancelarRespuesta();
-
-    const btnAgregar = document.getElementById("btn-agregar-integrante");
-    if (btnAgregar) {
-        if (subetiqueta.includes("Grupo") && currentUser && (currentUser.rol === "admin" || currentUser.rol === "superadmin")) {
-            btnAgregar.classList.remove("hidden");
-        } else {
-            btnAgregar.classList.add("hidden");
-        }
-    }
 
     const elLista = document.getElementById("chats-list-view");
     const elSala = document.getElementById("chat-room-view");
@@ -200,15 +205,7 @@ async function abrirSalaChat(chatId, nombreChat, subetiqueta, participantesArr =
     const titleEl = document.getElementById("active-chat-title");
     const statusEl = document.getElementById("active-chat-status");
     if (titleEl) titleEl.innerText = nombreChat;
-    
-    // 🌟 RENDERIZADO DINÁMICO DEL ENCABEZADO
-    if (statusEl) {
-        if (subetiqueta.includes("Grupo") && participantesArr && participantesArr.length > 0) {
-            statusEl.innerText = `• ${participantesArr.length} integrantes: ${participantesArr.join(", ")}`;
-        } else {
-            statusEl.innerText = `• ${subetiqueta}`;
-        }
-    }
+    if (statusEl) statusEl.innerText = `• ${subetiqueta}`;
 
     if (unsubscribeChatMessages) unsubscribeChatMessages();
 
@@ -222,8 +219,10 @@ async function abrirSalaChat(chatId, nombreChat, subetiqueta, participantesArr =
         snapshot.forEach((docSnap) => {
             const datos = docSnap.data();
             const idDoc = docSnap.id;
-            const docRef = docSnap.ref;
+            const docRef = docSnap.ref; // Referencia directa al documento para la actualización
 
+            // 👁️ NUEVO (DOBLE TILDE): Si el mensaje lo envió OTRA persona y está "sin leer", 
+            // significa que yo lo estoy abriendo en este instante. Lo marco como leído en Firebase.
             if (datos.remitente !== currentUser.usuario && datos.leido === false) {
                 updateDoc(docRef, { leido: true }).catch(err => 
                     console.error("Error al actualizar estado de lectura:", err)
@@ -277,15 +276,19 @@ async function abrirSalaChat(chatId, nombreChat, subetiqueta, participantesArr =
                 contenidoMensaje = `<span style="display:block;">${datos.texto || ''}</span>`;
             }
 
+            // 👁️ NUEVO (DOBLE TILDE): Determinar qué tilde inyectar al lado de la hora (Sólo en mis mensajes)
             let tildesHtml = "";
             if (datos.remitente === currentUser.usuario) {
                 if (datos.leido === true) {
+                    // Doble tilde azul
                     tildesHtml = `<span style="color: #53bdeb; margin-left: 5px; font-weight: bold; font-size: 0.9em;">✓✓</span>`;
                 } else {
+                    // Un tilde gris
                     tildesHtml = `<span style="color: #8696a0; margin-left: 5px; font-size: 0.9em;">✓</span>`;
                 }
             }
 
+            // --- CÓDIGO PROCESADOR DE REACCIONES ---
             const miReaccionActual = datos.reacciones ? (datos.reacciones[currentUser.usuario] || "") : "";
             let reaccionesHtml = "";
             
@@ -293,6 +296,7 @@ async function abrirSalaChat(chatId, nombreChat, subetiqueta, participantesArr =
                 reaccionesHtml = `<div class="msg-reactions">`;
                 const conteoReacciones = {};
                 
+                // Agrupamos reacciones idénticas (ej: si 3 ponen ❤️, muestra ❤️ 3)
                 for (const user in datos.reacciones) {
                     const emo = datos.reacciones[user];
                     if (emo) {
@@ -316,6 +320,7 @@ async function abrirSalaChat(chatId, nombreChat, subetiqueta, participantesArr =
                     <span class="${miReaccionActual === '🙏' ? 'active-emo' : ''}" onclick="enviarReaccion('${idDoc}', '🙏', '${miReaccionActual}')">🙏</span>
                 </div>
             `;
+            // ----------------------------------------
 
             divMensaje.innerHTML = `
                 <span class="msg-meta">${datos.remitente}</span> 
@@ -335,16 +340,19 @@ async function abrirSalaChat(chatId, nombreChat, subetiqueta, participantesArr =
     });
 }
 
-// --- VINCULACIONES GLOBALES (Solucionan el ReferenceError del Botón) ---
-window.login = async function login() {
+async function login() {
     const elUser = document.getElementById("usuario");
     const elPass = document.getElementById("password");
     const errorBox = document.getElementById("error") || document.getElementById("login-error");
 
     if (errorBox) errorBox.innerText = "";
-    if (!elUser || !elPass) return;
 
-    const usuario = elUser.value.trim().toLowerCase();
+    if (!elUser || !elPass) {
+        alert("Error de diseño: No se encontraron los campos en el HTML.");
+        return;
+    }
+
+    const usuario = elUser.value.trim();
     const password = elPass.value.trim();
 
     if (!usuario || !password) {
@@ -361,15 +369,16 @@ window.login = async function login() {
         if (errorBox) errorBox.innerText = e.message;
         else alert("Error al ingresar: " + e.message);
     }
-};
+}
 
-window.enviarMensaje = async function enviarMensaje() {
+async function enviarMensaje() {
     const input = document.getElementById("msg-input");
     if (!input) return;
     const texto = input.value.trim();
     if (!texto || !activeChatId) return;
 
     try {
+        // 👁️ NUEVO (DOBLE TILDE): Agregado el campo 'leido: false' por defecto
         const nuevoMensaje = {
             texto: texto,
             remitente: currentUser.usuario,
@@ -390,7 +399,11 @@ window.enviarMensaje = async function enviarMensaje() {
     } catch (e) {
         console.error("Error sending message:", e);
     }
-};
+}
+
+// Vinculación global de funciones
+window.login = login;
+window.enviarMensaje = enviarMensaje;
 
 window.logout = function(){
     if (unsubscribeChatsList) unsubscribeChatsList();
@@ -430,7 +443,9 @@ window.abrirModalGrupo = async function() {
                 listContainer.appendChild(item);
             }
         });
-    } catch(e) { console.error(e); }
+    } catch(e) {
+        console.error(e);
+    }
 };
 
 window.cerrarModalGrupo = function() {
@@ -440,7 +455,6 @@ window.cerrarModalGrupo = function() {
     if (gInput) gInput.value = "";
 };
 
-// 📌 TU FUNCIÓN CREAR GRUPO
 window.crearGrupoConfirmar = async function() {
     const gInput = document.getElementById("group-name-input");
     const nameInput = gInput ? gInput.value.trim() : "";
@@ -464,9 +478,10 @@ window.crearGrupoConfirmar = async function() {
 
         const docRef = await addDoc(collection(db, "chats"), nuevoGrupo);
         cerrarModalGrupo();
-        // 🌟 PASANDO LOS PARTICIPANTES
-        abrirSalaChat(docRef.id, nameInput, "Grupo familiar", participantes);
-    } catch(e) { alert("Error al crear el grupo."); }
+        abrirSalaChat(docRef.id, nameInput, "Grupo familiar");
+    } catch(e) {
+        alert("Error al crear el grupo.");
+    }
 };
 
 window.abrirModalDM = async function() {
@@ -486,13 +501,14 @@ window.abrirModalDM = async function() {
                 const item = document.createElement("div");
                 item.className = "checklist-item";
                 item.style.fontWeight = "600";
-                item.style.cursor = "pointer";
                 item.innerText = `👤 ${u}`;
                 item.onclick = () => iniciarChatIndividual(u);
                 listContainer.appendChild(item);
             }
         });
-    } catch(e) { console.error(e); }
+    } catch(e) {
+        console.error(e);
+    }
 };
 
 window.cerrarModalDM = function() {
@@ -514,26 +530,32 @@ async function iniciarChatIndividual(otroUsuario) {
             }
         });
 
-        const arrayPrivado = [currentUser.usuario, otroUsuario];
-
         if (chatExistenteId) {
-            abrirSalaChat(chatExistenteId, otroUsuario, "Chat privado", arrayPrivado);
+            abrirSalaChat(chatExistenteId, otroUsuario, "Chat privado");
         } else {
             const nuevoChatPrivado = {
                 tipo: "individual",
                 nombre: "",
-                participantes: arrayPrivado,
+                participantes: [currentUser.usuario, otroUsuario],
                 ultimaFecha: serverTimestamp(),
                 ultimoRemitente: currentUser.usuario
             };
             const docRef = await addDoc(collection(db, "chats"), nuevoChatPrivado);
-            abrirSalaChat(docRef.id, otroUsuario, "Chat privado", arrayPrivado);
+            abrirSalaChat(docRef.id, otroUsuario, "Chat privado");
         }
-    } catch(e) { console.error(e); }
+    } catch(e) {
+        console.error(e);
+    }
 }
 
-window.abrirGaleria = function() { document.getElementById("gallery-input").click(); };
-window.abrirCamara = function() { document.getElementById("camera-input").click(); };
+window.abrirGaleria = function() { 
+    const gIn = document.getElementById("gallery-input");
+    if (gIn) gIn.click(); 
+};
+window.abrirCamara = function() { 
+    const cIn = document.getElementById("camera-input");
+    if (cIn) cIn.click(); 
+};
 
 window.subirFoto = async function(elementoInput) {
     const archivo = elementoInput.files[0];
@@ -564,6 +586,7 @@ window.subirFoto = async function(elementoInput) {
         if (resultado.success) {
             const URLPublica = resultado.data.url;
             
+            // 👁️ NUEVO (DOBLE TILDE): Agregado 'leido: false' para que las fotos también tengan checkmarks
             const nuevoMensaje = {
                 texto: "",
                 imagenUrl: URLPublica,
@@ -580,7 +603,9 @@ window.subirFoto = async function(elementoInput) {
                 ultimaFecha: serverTimestamp(),
                 ultimoRemitente: currentUser.usuario 
             });
-        } else { throw new Error(); }
+        } else {
+            throw new Error();
+        }
     } catch (e) {
         alert("Hubo un problema al subir la foto.");
     } finally {
@@ -594,12 +619,16 @@ window.subirFoto = async function(elementoInput) {
 
 window.eliminarMensaje = async function(idDoc) {
     if (!confirm("¿Quieres eliminar este mensaje para todos?")) return;
-    try { await deleteDoc(doc(db, "chats", activeChatId, "mensajes", idDoc)); } 
-    catch (e) { console.error(e); }
+    try {
+        await deleteDoc(doc(db, "chats", activeChatId, "mensajes", idDoc));
+    } catch (e) {
+        console.error(e);
+    }
 };
 
 window.seleccionarRespuesta = function(id, texto, remitente) {
     replyTarget = { msgId: id, texto: texto, remitente: remitente };
+    
     const rUser = document.getElementById("reply-preview-user");
     const rText = document.getElementById("reply-preview-text");
     const rBox = document.getElementById("reply-preview-box");
@@ -735,89 +764,31 @@ window.volverAlAppDesdeAdmin = function() {
 
 window.togglePicker = function(idDoc) {
     const picker = document.getElementById(`picker-${idDoc}`);
-    if (picker) { picker.classList.toggle("hidden"); }
+    if (picker) {
+        picker.classList.toggle("hidden");
+    }
 };
 
 window.enviarReaccion = async function(idDoc, emoji, reaccionActual) {
     if (!activeChatId || !currentUser) return;
+    
     const picker = document.getElementById(`picker-${idDoc}`);
     if (picker) picker.classList.add("hidden");
 
     try {
         const docRef = doc(db, "chats", activeChatId, "mensajes", idDoc);
+        
         if (reaccionActual === emoji) {
-            await updateDoc(docRef, { [`reacciones.${currentUser.usuario}`]: deleteField() });
+            await updateDoc(docRef, {
+                [`reacciones.${currentUser.usuario}`]: deleteField()
+            });
         } else {
-            await updateDoc(docRef, { [`reacciones.${currentUser.usuario}`]: emoji });
-        }
-    } catch (e) { console.error("Error gestionando reacción:", e); }
-};
-
-// --- FUNCIONES EXCLUSIVAS DE AGREGAR MIEMBROS ---
-window.abrirModalAgregarIntegrante = async function() {
-    const modal = document.getElementById("modal-agregar-integrante");
-    const container = document.getElementById("lista-usuarios-agregar");
-    if (!modal || !container || !activeChatId) return;
-
-    modal.classList.remove("hidden");
-    container.innerHTML = "Cargando familiares... ⏳";
-
-    try {
-        const chatsSnap = await getDocs(query(collection(db, "chats")));
-        let participantesActuales = [];
-        chatsSnap.forEach(d => {
-            if (d.id === activeChatId) participantesActuales = d.data().participantes || [];
-        });
-
-        const usersSnap = await getDocs(collection(db, "usuarios"));
-        container.innerHTML = "";
-        let contadorOpciones = 0;
-
-        usersSnap.forEach(docSnap => {
-            const u = docSnap.data().usuario;
-            if (!participantesActuales.includes(u)) {
-                contadorOpciones++;
-                const label = document.createElement("label");
-                label.style.display = "flex";
-                label.style.alignItems = "center";
-                label.style.gap = "10px";
-                label.style.cursor = "pointer";
-                label.innerHTML = `<input type="checkbox" class="add-user-checkbox" value="${u}"> <span style="color:#111b21;">${u}</span>`;
-                container.appendChild(label);
-            }
-        });
-
-        if (contadorOpciones === 0) {
-            container.innerHTML = "<div style='color:#667781; font-size:0.9rem; text-align:center;'>Todos los familiares ya son miembros.</div>";
+            await updateDoc(docRef, {
+                [`reacciones.${currentUser.usuario}`]: emoji
+            });
         }
     } catch (e) {
-        console.error("Error al abrir listado:", e);
-        container.innerHTML = "Error al cargar la lista.";
-    }
-};
-
-window.cerrarModalAgregarIntegrante = function() {
-    const modal = document.getElementById("modal-agregar-integrante");
-    if (modal) modal.classList.add("hidden");
-};
-
-window.ejecutarAgregarIntegrantes = async function() {
-    if (!activeChatId) return;
-    const checkboxes = document.querySelectorAll(".add-user-checkbox:checked");
-    if (checkboxes.length === 0) {
-        alert("Por favor, selecciona al menos a un familiar.");
-        return;
-    }
-
-    const seleccionados = Array.from(checkboxes).map(cb => cb.value);
-
-    try {
-        const chatRef = doc(db, "chats", activeChatId);
-        await updateDoc(chatRef, { participantes: arrayUnion(...seleccionados) });
-        alert("¡Familiares agregados con éxito al grupo! 🎉");
-        cerrarModalAgregarIntegrante();
-    } catch (err) {
-        alert("No se pudieron añadir los integrantes: " + err.message);
+        console.error("Error gestionando reacción en Firestore:", e);
     }
 };
 
@@ -829,25 +800,31 @@ document.addEventListener("keydown", function(e) {
         const userIn = document.getElementById("usuario");
 
         if (document.activeElement === msgIn) {
-            window.enviarMensaje();
+            enviarMensaje();
         } else if (document.activeElement === passIn || document.activeElement === userIn) {
-            window.login();
+            login();
         }
     }
 });
 
-// ⚡ INICIALIZACIÓN
+// ⚡ INICIALIZACIÓN CORREGIDA (Registra el Service Worker y pide permisos)
 async function inicializarApp() {
     try { await verificarYCrearUsuarioDefecto(); } catch (err) {}
     
+    // 1️⃣ REGISTRAR EL SERVICE WORKER (¡Esto era lo que faltaba para activar las alertas!)
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('Service Worker registrado'))
-            .catch(err => console.error('Fallo al registrar:', err));
+            .then(reg => console.log('Service Worker registrado con éxito en el ámbito:', reg.scope))
+            .catch(err => console.error('Fallo al registrar Service Worker:', err));
     }
     
+    // 2️⃣ Solicitud de permisos flotantes nativos al usuario
     if ('Notification' in window && Notification.permission === 'default') {
-        Notification.requestPermission();
+        Notification.requestPermission().then(permiso => {
+            if (permiso === 'granted') {
+                alert("¡Excelente! Permiso de notificaciones concedido.");
+            }
+        });
     }
     
     try {
@@ -859,6 +836,7 @@ async function inicializarApp() {
             }
         }
     } catch(e) {
+        console.error("Error cargando sesión anterior:", e);
         localStorage.removeItem("user");
     }
 }
