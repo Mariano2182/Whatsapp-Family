@@ -157,7 +157,14 @@ background-size: 28px 28px;
     .message-input { flex: 1; height: 42px; border-radius: 24px; border: none; padding: 0 18px; outline: none; font-size: 0.95rem; box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
     .attach-btn { background: none; border: none; font-size: 1.35rem; cursor: pointer; color: #54656f; display: flex; align-items: center; transition: color 0.2s; }
     .attach-btn:hover { color: var(--wa-green-dark); }
-    .send-btn { background-color: var(--wa-green-dark); color: white; border: none; border-radius: 50%; width: 42px; height: 42px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+    .send-btn { background-color: var(--wa-green-dark); color: white; border: none; border-radius: 50%; width: 42px; height: 42px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; .send-btn {
+    /* ... tus otros estilos ... */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.25);
+    transition: transform 0.1s ease, background-color 0.2s;
+}
+.send-btn:active {
+    transform: scale(0.92); /* Se encoge un poquito al presionarlo, dando sensación de botón real */
+}
     .send-btn:hover { background-color: #006653; }
 
     /* MODALES FLOTANTES (Crear Grupo / Iniciar DM) */
