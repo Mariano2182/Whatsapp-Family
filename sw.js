@@ -1,45 +1,27 @@
-// 1. Instalar la base de OneSignal
-importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
+const CACHE_NAME = 'chat-familiar-v1';
 
-const CACHE_NAME = 'chat-familiar-v2'; // Cambié la versión para forzar actualización
-
-// 2. Tu caché offline
+// 📦 1. INSTALACIÓN Y CACHÉ (Tu código original)
 self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(['./', './index.html']))
   );
-  self.skipWaiting(); // Fuerza a que el celular tome esta versión YA MISMO
-});
-
-self.addEventListener('activate', (e) => {
-  e.waitUntil(self.clients.claim());
 });
 
 self.addEventListener('fetch', (e) => {
-  const url = e.request.url;
-  if (url.includes('firestore.googleapis.com') || 
-      url.includes('identitytoolkit.googleapis.com') || 
-      url.includes('firebaseio.com') || 
-      url.includes('onesignal.com')) {
-      return; // Deja que el navegador lo maneje con su conexión normal
-  }
-
   e.respondWith(
     fetch(e.request).catch(() => caches.match(e.request))
   );
 });
 
-// 3. Tu lógica personalizada de notificaciones Push de Firebase
+// 🚀 2. NUEVO: EL RECEPTOR DE MENSAJES EN SEGUNDO PLANO
 self.addEventListener('push', function(event) {
-    // Si la alerta viene de OneSignal, lo dejamos pasar, no interferimos.
-    if (event.data && event.data.text().includes("onesignal")) return;
-
     let datos = {
         titulo: "Chat Familiar",
         texto: "Tienes mensajes nuevos sin leer.",
         url: "./index.html"
     };
 
+    // Intentamos extraer el texto exacto que nos envía Firebase
     if (event.data) {
         try {
             const dataExtra = event.data.json();
@@ -47,6 +29,7 @@ self.addEventListener('push', function(event) {
                 datos.titulo = dataExtra.notification.title || datos.titulo;
                 datos.texto = dataExtra.notification.body || datos.texto;
             } else {
+                // Formato de datos personalizado
                 datos.titulo = dataExtra.titulo || datos.titulo;
                 datos.texto = dataExtra.texto || datos.texto;
             }
@@ -55,26 +38,27 @@ self.addEventListener('push', function(event) {
         }
     }
 
+    // 📳 ACÁ ESTÁ LA MAGIA: Vibración estilo WhatsApp y diseño de alerta
     const opciones = {
         body: datos.texto,
-        icon: 'https://cdn-icons-png.flaticon.com/512/5968/5968771.png',
-        badge: 'https://cdn-icons-png.flaticon.com/512/5968/5968771.png',
-        vibrate: [200, 100, 200, 100, 200],
+        icon: 'https://cdn-icons-png.flaticon.com/512/5968/5968771.png', // Reemplaza por el ícono de tu app si lo tienes local
+        badge: 'https://cdn-icons-png.flaticon.com/512/5968/5968771.png', // Iconito para la barra de estado superior
+        vibrate: [200, 100, 200, 100, 200], // Patrón: Vibra, pausa, vibra, pausa, vibra
         data: { url: datos.url }
     };
 
+    // Le ordena al sistema operativo del celular que despierte y muestre la alerta
     event.waitUntil(
         self.registration.showNotification(datos.titulo, opciones)
     );
 });
 
+// 🖱️ 3. CLIC EN LA NOTIFICACIÓN (Tu código original)
 self.addEventListener('notificationclick', (event) => {
-  // Solo interceptamos si no es de OneSignal
-  if (event.notification.data && event.notification.data.onesignal) return;
-  
-  event.notification.close();
+  event.notification.close(); // Cierra la alerta
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // Si la app ya está abierta, la enfoca. Si no, la abre.
       if (clientList.length > 0) {
         return clientList[0].focus();
       }
