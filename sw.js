@@ -16,6 +16,16 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
+  const url = e.request.url;
+  
+  // 🚨 REGLA DE ORO: No interceptar bases de datos ni notificaciones
+  if (url.includes('firestore.googleapis.com') || 
+      url.includes('identitytoolkit.googleapis.com') || 
+      url.includes('firebaseio.com') || 
+      url.includes('onesignal.com')) {
+      return; // Deja que el navegador lo maneje con su conexión normal
+  }
+
   e.respondWith(
     fetch(e.request).catch(() => caches.match(e.request))
   );
