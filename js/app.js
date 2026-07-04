@@ -468,7 +468,6 @@ window.crearGrupoConfirmar = async function() {
         abrirSalaChat(docRef.id, nameInput, "Grupo familiar", participantes);
     } catch(e) { alert("Error al crear el grupo."); }
 };
-
 window.abrirModalDM = async function() {
     const listContainer = document.getElementById("dm-users-list");
     if (!listContainer) return;
@@ -591,8 +590,7 @@ window.subirFoto = async function(elementoInput) {
         elementoInput.value = ""; 
     }
 };
-
-window.eliminarMensaje = async function(idDoc) {
+    window.eliminarMensaje = async function(idDoc) {
     if (!confirm("¿Quieres eliminar este mensaje para todos?")) return;
     try { await deleteDoc(doc(db, "chats", activeChatId, "mensajes", idDoc)); } 
     catch (e) { console.error(e); }
@@ -679,6 +677,43 @@ window.crearNuevoUsuarioAdmin = async function() {
     }
 };
 
+window.panelDarBaja = async function(usuario) {
+    if (!confirm(`¿Estás seguro de dar de BAJA a '${usuario}'?`)) return;
+    try { await eliminarUsuario(usuario); alert("Usuario eliminado."); } catch(e) { alert(e.message); }
+};
+
+window.panelCambiarClave = async function(usuario) {
+    const nuevaClave = prompt(`Nueva contraseña para '${usuario}':`);
+    if (!nuevaClave || !nuevaClave.trim()) return;
+    try { await cambiarPasswordUsuario(usuario, nuevaClave); alert("Contraseña actualizada."); } catch(e) { alert(e.message); }
+};
+
+window.cambiarNombreFamiliar = async function() {
+    const actual = document.getElementById("edit-usuario-actual").value;
+    const nuevo = document.getElementById("edit-usuario-nuevo").value;
+    const adminMsg = document.getElementById("admin-msg");
+    if (adminMsg) adminMsg.innerText = "";
+
+    try {
+        const nombreFinal = await actualizarNombreUsuario(actual, nuevo);
+        if (adminMsg) {
+            adminMsg.style.color = "green";
+            adminMsg.innerText = `¡Cambiado con éxito!`;
+        }
+
+        if (currentUser && currentUser.usuario === actual.trim().toLowerCase()) {
+            currentUser.usuario = nombreFinal;
+            localStorage.setItem("user", JSON.stringify(currentUser));
+        }
+        document.getElementById("edit-usuario-actual").value = "";
+        document.getElementById("edit-usuario-nuevo").value = "";
+    } catch (e) {
+        if (adminMsg) {
+            adminMsg.style.color = "red";
+            adminMsg.innerText = e.message;
+        }
+    }
+};
 window.panelDarBaja = async function(usuario) {
     if (!confirm(`¿Estás seguro de dar de BAJA a '${usuario}'?`)) return;
     try { await eliminarUsuario(usuario); alert("Usuario eliminado."); } catch(e) { alert(e.message); }
