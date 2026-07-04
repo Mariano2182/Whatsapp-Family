@@ -430,6 +430,7 @@ window.abrirModalGrupo = async function() {
                 listContainer.appendChild(item);
             }
         });
+        
     } catch(e) { console.error(e); }
 };
 
