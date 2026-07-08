@@ -1,7 +1,7 @@
 import { db } from "./firebase.js";
-import { collection, query, where, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+// MODIFICADO: Se agregan 'doc' y 'updateDoc' a las herramientas importadas
+import { collection, query, where, getDocs, addDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
-// Función para encriptar en formato SHA-256 nativo
 export async function sha256(text) {
     const msgBuffer = new TextEncoder().encode(text);
     const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer);
@@ -9,62 +9,79 @@ export async function sha256(text) {
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-// Función para iniciar sesión
 export async function loginUser(usuario, password) {
     const usuarioLimpio = (typeof usuario === 'string') ? usuario.trim() : String(usuario || "").trim();
-    
-    if (!usuarioLimpio) {
-        throw new Error("El nombre de usuario no puede estar vacío");
-    }
+    if (!usuarioLimpio) throw new Error("El nombre de usuario no puede estar vacío");
 
     const q = query(collection(db, "usuarios"), where("usuario", "==", usuarioLimpio));
     const querySnapshot = await getDocs(q);
-
-    if (querySnapshot.empty) {
-        throw new Error("Usuario no existe");
-    }
+    if (querySnapshot.empty) throw new Error("Usuario no existe");
 
     const docSnap = querySnapshot.docs[0];
     const userData = docSnap.data();
 
     const hash = await sha256(password);
-    if (userData.passwordHash !== hash) {
-        throw new Error("Contraseña incorrecta");
-    }
+    if (userData.passwordHash !== hash) throw new Error("Contraseña incorrecta");
 
     return userData;
 }
 
-// NUEVA FUNCIÓN: Registra un nuevo miembro familiar en Firebase
 export async function registrarNuevoUsuario(usuario, password, rol) {
     const userLimpio = usuario.trim().toLowerCase();
-    
-    if (!userLimpio || !password.trim()) {
-        throw new Error("El nombre de usuario y la contraseña no pueden estar vacíos.");
-    }
+    if (!userLimpio || !password.trim()) throw new Error("El nombre y contraseña no pueden estar vacíos.");
 
-    // Validación preventiva: verificar si ya existe ese familiar en la red
     const q = query(collection(db, "usuarios"), where("usuario", "==", userLimpio));
     const querySnapshot = await getDocs(q);
+    if (!querySnapshot.empty) throw new Error("Ese nombre de usuario ya está registrado.");
 
-    if (!querySnapshot.empty) {
-        throw new Error("Ese nombre de usuario ya está registrado en la familia.");
-    }
-
-    // Encriptamos la contraseña del familiar antes de guardarla
     const hashContrasena = await sha256(password.trim());
-
-    // Guardamos el nuevo documento con la estructura perfecta
     await addDoc(collection(db, "usuarios"), {
         usuario: userLimpio,
         passwordHash: hashContrasena,
         rol: rol
     });
-
     return true;
 }
 
-// CREADOR AUTOMÁTICO DE SEGURIDAD
+// NUEVA FUNCIÓN: Modifica el nombre de usuario y actualiza en cascada sus mensajes de chat
+export async function actualizarNombreUsuario(usuarioActual, nuevoUsuario) {
+    const actualLimpio = usuarioActual.trim().toLowerCase();
+    const nuevoLimpio = nuevoUsuario.trim().toLowerCase();
+
+    if (!actualLimpio || !nuevoLimpio) throw new Error("Ambos campos son obligatorios.");
+    if (actualLimpio === nuevoLimpio) throw new Error("El nombre nuevo debe ser diferente al actual.");
+
+    // 1. Validar que el nuevo nombre no esté ocupado por otro familiar
+    const qNuevo = query(collection(db, "usuarios"), where("usuario", "==", nuevoLimpio));
+    const snapNuevo = await getDocs(qNuevo);
+    if (!snapNuevo.empty) throw new Error("El nuevo nombre de usuario ya está en uso por alguien más.");
+
+    // 2. Buscar el documento de la cuenta a modificar
+    const qActual = query(collection(db, "usuarios"), where("usuario", "==", actualLimpio));
+    const snapActual = await getDocs(qActual);
+    if (snapActual.empty) throw new Error("El usuario que intentas modificar no existe.");
+
+    const idUsuarioDoc = snapActual.docs[0].id;
+    const userDocRef = doc(db, "usuarios", idUsuarioDoc);
+    
+    // 3. Modificar el nombre en la cuenta de usuario
+    await updateDoc(userDocRef, { usuario: nuevoLimpio });
+
+    // 4. ACTUALIZACIÓN EN CASCADA: Buscar todos los mensajes del chat enviados por este usuario
+    const qMensajes = query(collection(db, "mensajes"), where("remitente", "==", actualLimpio));
+    const snapMensajes = await getDocs(qMensajes);
+    
+    // Editamos todos sus mensajes en paralelo de forma eficiente
+    const promesasActualizacion = snapMensajes.docs.map(msgDoc => {
+        const msgRef = doc(db, "mensajes", msgDoc.id);
+        return updateDoc(msgRef, { remitente: nuevoLimpio });
+    });
+    
+    await Promise.all(promesasActualizacion);
+
+    return nuevoLimpio;
+}
+
 export async function verificarYCrearUsuarioDefecto() {
     const querySnapshot = await getDocs(collection(db, "usuarios"));
     if (querySnapshot.empty) {
