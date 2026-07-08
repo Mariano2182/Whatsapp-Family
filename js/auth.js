@@ -1,4 +1,4 @@
-import { db } from "./firebase.js";
+import { db } from "./js/firebase.js";
 import { collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
 export async function sha256(text) {
