@@ -1,96 +1,52 @@
-import { loginUser, verificarYCrearUsuarioDefecto, registrarNuevoUsuario } from "./auth.js";
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Familiar</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
 
-let currentUser = null;
+    <div id="login-container" class="login-container">
+        <h2>Chat Familiar</h2>
+        <input type="text" id="usuario" placeholder="Usuario">
+        <input type="password" id="password" placeholder="Contraseña">
+        <button onclick="login()">Ingresar</button>
+        <p id="error" style="color: red; font-weight: bold; margin-top: 10px;"></p>
+        <p id="setup-msg" style="color: #00a884; font-weight: bold; font-size: 0.9em; margin-top: 10px;"></p>
+    </div>
 
-// Controla qué elementos gráficos mostrar basados en los permisos
-function mostrarPantallaSegunRol(user) {
-    document.getElementById("login-container").classList.add("hidden");
-    document.getElementById("admin-panel").classList.add("hidden");
-    document.getElementById("app").classList.remove("hidden");
-
-    document.getElementById("user-info").innerText = `Usuario: ${user.usuario} | Rol: ${user.rol}`;
-
-    // FILTRO DE SEGURIDAD: Si es superadmin, revelamos el botón secreto
-    const adminBtn = document.getElementById("admin-btn");
-    if (user.rol === "superadmin") {
-        adminBtn.classList.remove("hidden");
-    } else {
-        adminBtn.classList.add("hidden");
-    }
-}
-
-window.login = async function(){
-    const usuario = document.getElementById("usuario").value;
-    const password = document.getElementById("password").value;
-    const error = document.getElementById("error");
-    error.innerText = "";
-
-    try {
-        const user = await loginUser(usuario, password);
-        currentUser = user;
-        localStorage.setItem("user", JSON.stringify(user));
-        mostrarPantallaSegunRol(user);
-    } catch(e) {
-        error.innerText = e.message;
-    }
-};
-
-window.logout = function(){
-    localStorage.removeItem("user");
-    location.reload();
-};
-
-// --- NAVEGACIÓN Y ACCIONES DEL PANEL SECRETO ---
-
-window.abrirPanelAdmin = function() {
-    document.getElementById("app").classList.add("hidden");
-    document.getElementById("admin-panel").classList.remove("hidden");
-    document.getElementById("admin-msg").innerText = "";
-};
-
-window.volverAlApp = function() {
-    document.getElementById("admin-panel").classList.add("hidden");
-    document.getElementById("app").classList.remove("hidden");
-};
-
-window.crearFamiliar = async function() {
-    const nuevoUser = document.getElementById("nuevo-usuario").value;
-    const nuevaPass = document.getElementById("nueva-password").value;
-    const nuevoRol = document.getElementById("nuevo-rol").value;
-    const adminMsg = document.getElementById("admin-msg");
-
-    adminMsg.innerText = "";
-    adminMsg.style.color = "black";
-
-    try {
-        // Ejecutamos el registro hacia Firebase
-        await registrarNuevoUsuario(nuevoUser, nuevaPass, nuevoRol);
+    <div id="app" class="hidden">
+        <h1>Bienvenido 👋</h1>
+        <p id="user-info"></p>
         
-        // Mensaje de éxito
-        adminMsg.style.color = "green";
-        adminMsg.innerText = `¡Éxito! Cuenta de '${nuevoUser}' creada como [${nuevoRol}].`;
+        <button id="admin-btn" class="hidden" onclick="abrirPanelAdmin()" style="background-color: #00a884; margin-bottom: 10px;">⚙️ Panel de Superadmin</button>
         
-        // Limpiamos los casilleros del formulario
-        document.getElementById("nuevo-usuario").value = "";
-        document.getElementById("nueva-password").value = "";
-    } catch (e) {
-        adminMsg.style.color = "red";
-        adminMsg.innerText = e.message;
-    }
-};
+        <button onclick="logout()">Cerrar sesión</button>
+    </div>
 
-window.onload = async function(){
-    const setupMsg = document.getElementById("setup-msg");
-    try {
-        await verificarYCrearUsuarioDefecto();
-    } catch (err) {
-        console.error("Error al inicializar datos:", err);
-    }
+    <div id="admin-panel" class="hidden" style="max-width: 400px; margin: auto; padding: 20px; border: 1px solid #ccc; border-radius: 8px; margin-top: 50px;">
+        <h2>⚙️ Crear Nuevo Familiar</h2>
+        <p style="font-size: 0.9em; color: #555; margin-bottom: 15px;">Registra a un miembro de la familia con sus propias credenciales.</p>
 
-    const saved = localStorage.getItem("user");
-    if (saved) {
-        const user = JSON.parse(saved);
-        currentUser = user;
-        mostrarPantallaSegunRol(user);
-    }
-};
+        <input type="text" id="nuevo-usuario" placeholder="Nombre del familiar (ej: mama)" style="display:block; width:100%; margin-bottom: 10px; padding:8px;">
+        <input type="password" id="nueva-password" placeholder="Contraseña para él/ella" style="display:block; width:100%; margin-bottom: 10px; padding:8px;">
+        
+        <label style="font-size: 0.85em; font-weight: bold;">Rango asignado:</label>
+        <select id="nuevo-rol" style="display:block; width:100%; margin-bottom: 15px; padding:8px;">
+            <option value="usuario">Usuario Común (Solo Chat)</option>
+            <option value="admin">Administrador Secundario</option>
+            <option value="superadmin">Superadmin (Control Total)</option>
+        </select>
+
+        <button onclick="crearFamiliar()" style="background-color: #00a884; width: 100%; margin-bottom: 10px;">Crear Cuenta Familiar</button>
+        <button onclick="volverAlApp()" style="background-color: #666; width: 100%;">⬅️ Volver Atrás</button>
+
+        <p id="admin-msg" style="font-weight: bold; margin-top: 15px; text-align: center;"></p>
+    </div>
+
+    <script type="module" src="js/app.js"></script>
+
+</body>
+</html>
