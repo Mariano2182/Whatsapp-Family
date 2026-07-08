@@ -37,18 +37,17 @@ export async function loginUser(usuario, password) {
     return userData;
 }
 
-// CREADOR AUTOMÁTICO: Si borraste las colecciones, esta función reconstruye a 'nano' perfectamente
+// CREADOR AUTOMÁTICO: Modificado para asignar 'superadmin'
 export async function verificarYCrearUsuarioDefecto() {
     const querySnapshot = await getDocs(collection(db, "usuarios"));
     
     if (querySnapshot.empty) {
         const hashContrasena = await sha256("nano123");
         
-        // Inserta la estructura limpia que necesita el programa
         await addDoc(collection(db, "usuarios"), {
             usuario: "nano",
             passwordHash: hashContrasena,
-            rol: "admin"
+            rol: "superadmin" // <-- Cambiado de "admin" a "superadmin"
         });
         return true;
     }
