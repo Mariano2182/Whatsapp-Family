@@ -1,6 +1,6 @@
-import { db } from "./firebase.js";
-// MODIFICADO: Se agregan 'doc' y 'updateDoc' a las herramientas importadas
-import { collection, query, where, getDocs, addDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+ import { db } from "./firebase.js";
+// MODIFICADO: Se agrega 'deleteDoc' a las herramientas importadas de Firestore
+import { collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
 export async function sha256(text) {
     const msgBuffer = new TextEncoder().encode(text);
@@ -43,7 +43,6 @@ export async function registrarNuevoUsuario(usuario, password, rol) {
     return true;
 }
 
-// NUEVA FUNCIÓN: Modifica el nombre de usuario y actualiza en cascada sus mensajes de chat
 export async function actualizarNombreUsuario(usuarioActual, nuevoUsuario) {
     const actualLimpio = usuarioActual.trim().toLowerCase();
     const nuevoLimpio = nuevoUsuario.trim().toLowerCase();
@@ -51,12 +50,10 @@ export async function actualizarNombreUsuario(usuarioActual, nuevoUsuario) {
     if (!actualLimpio || !nuevoLimpio) throw new Error("Ambos campos son obligatorios.");
     if (actualLimpio === nuevoLimpio) throw new Error("El nombre nuevo debe ser diferente al actual.");
 
-    // 1. Validar que el nuevo nombre no esté ocupado por otro familiar
     const qNuevo = query(collection(db, "usuarios"), where("usuario", "==", nuevoLimpio));
     const snapNuevo = await getDocs(qNuevo);
     if (!snapNuevo.empty) throw new Error("El nuevo nombre de usuario ya está en uso por alguien más.");
 
-    // 2. Buscar el documento de la cuenta a modificar
     const qActual = query(collection(db, "usuarios"), where("usuario", "==", actualLimpio));
     const snapActual = await getDocs(qActual);
     if (snapActual.empty) throw new Error("El usuario que intentas modificar no existe.");
@@ -64,22 +61,48 @@ export async function actualizarNombreUsuario(usuarioActual, nuevoUsuario) {
     const idUsuarioDoc = snapActual.docs[0].id;
     const userDocRef = doc(db, "usuarios", idUsuarioDoc);
     
-    // 3. Modificar el nombre en la cuenta de usuario
     await updateDoc(userDocRef, { usuario: nuevoLimpio });
 
-    // 4. ACTUALIZACIÓN EN CASCADA: Buscar todos los mensajes del chat enviados por este usuario
     const qMensajes = query(collection(db, "mensajes"), where("remitente", "==", actualLimpio));
     const snapMensajes = await getDocs(qMensajes);
     
-    // Editamos todos sus mensajes en paralelo de forma eficiente
     const promesasActualizacion = snapMensajes.docs.map(msgDoc => {
         const msgRef = doc(db, "mensajes", msgDoc.id);
         return updateDoc(msgRef, { remitente: nuevoLimpio });
     });
     
     await Promise.all(promesasActualizacion);
-
     return nuevoLimpio;
+}
+
+// NUEVA FUNCIÓN: Elimina una cuenta familiar físicamente de Firestore
+export async function eliminarUsuario(usuarioAEliminar) {
+    const uLimpio = usuarioAEliminar.trim().toLowerCase();
+    if (uLimpio === "nano") throw new Error("Filtro de seguridad: No puedes eliminar la cuenta raíz de superadmin.");
+
+    const q = query(collection(db, "usuarios"), where("usuario", "==", uLimpio));
+    const snap = await getDocs(q);
+    if (snap.empty) throw new Error("El usuario seleccionado ya no existe en el sistema.");
+
+    const idDoc = snap.docs[0].id;
+    await deleteDoc(doc(db, "usuarios", idDoc));
+    return true;
+}
+
+// NUEVA FUNCIÓN: Encripta una nueva clave y reemplaza la anterior del familiar
+export async function cambiarPasswordUsuario(usuarioAEditar, nuevaPassword) {
+    const uLimpio = usuarioAEditar.trim().toLowerCase();
+    if (!nuevaPassword.trim()) throw new Error("La contraseña no puede guardarse en blanco.");
+
+    const q = query(collection(db, "usuarios"), where("usuario", "==", uLimpio));
+    const snap = await getDocs(q);
+    if (snap.empty) throw new Error("El usuario no existe.");
+
+    const idDoc = snap.docs[0].id;
+    const nuevoHash = await sha256(nuevaPassword.trim());
+    
+    await updateDoc(doc(db, "usuarios", idDoc), { passwordHash: nuevoHash });
+    return true;
 }
 
 export async function verificarYCrearUsuarioDefecto() {
