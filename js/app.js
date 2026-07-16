@@ -1,11 +1,10 @@
 import { db } from "./firebase.js";
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
-// MODIFICADO: Importamos 'eliminarUsuario' y 'cambiarPasswordUsuario' de auth
 import { loginUser, verificarYCrearUsuarioDefecto, registrarNuevoUsuario, actualizarNombreUsuario, eliminarUsuario, cambiarPasswordUsuario } from "./auth.js";
 
 let currentUser = null;
 let unsubscribeChat = null;
-let unsubscribeUsuarios = null; // Guardará el escuchador en vivo de los usuarios
+let unsubscribeUsuarios = null; 
 
 function mostrarPantallaSegunRol(user) {
     document.getElementById("login-container").classList.add("hidden");
@@ -78,7 +77,7 @@ function cargarChatEnTiempoReal() {
     });
 }
 
-// NUEVA FUNCIÓN: Enciende el canal en vivo para traer la lista de familiares registrados
+// MODIFICADO: Aplica el escudo visual a 'marian' en la lista en tiempo real
 function escucharUsuariosAdmin() {
     if (unsubscribeUsuarios) unsubscribeUsuarios();
     const listaBox = document.getElementById("lista-usuarios");
@@ -93,8 +92,8 @@ function escucharUsuariosAdmin() {
 
             let botonesAccion = "";
             
-            // Protección balística: El superadmin raíz 'nano' no se puede tocar a sí mismo desde la lista
-            if (u.usuario !== "nano") {
+            // MODIFICADO: El escudo ahora protege a 'marian'
+            if (u.usuario !== "marian") {
                 botonesAccion = `
                     <div>
                         <button onclick="panelCambiarClave('${u.usuario}')" style="background:#34b7f1; color:white; border:none; padding:5px 8px; border-radius:3px; cursor:pointer; font-size:0.8em; font-weight:bold; margin-right:4px;">🔑 Clave</button>
@@ -111,7 +110,6 @@ function escucharUsuariosAdmin() {
     });
 }
 
-// NUEVA FUNCIÓN GLOBAL: Pide confirmación y manda la orden de borrar la cuenta
 window.panelDarBaja = async function(usuario) {
     const confirmar = confirm(`¿Estás completamente seguro de dar de BAJA la cuenta de '${usuario}'? No podrá volver a loguearse.`);
     if (!confirmar) return;
@@ -124,10 +122,9 @@ window.panelDarBaja = async function(usuario) {
     }
 };
 
-// NUEVA FUNCIÓN GLOBAL: Lanza un prompt nativo seguro para escribir la nueva contraseña
 window.panelCambiarClave = async function(usuario) {
     const nuevaClave = prompt(`Escribe la NUEVA CONTRASEÑA para el familiar '${usuario}':`);
-    if (nuevaClave === null) return; // Si apretó cancelar, salimos sin hacer nada
+    if (nuevaClave === null) return;
     
     if (!nuevaClave.trim()) {
         alert("Error: La contraseña no puede estar en blanco.");
@@ -215,7 +212,7 @@ window.login = async function(){
 
 window.logout = function(){
     if (unsubscribeChat) unsubscribeChat();
-    if (unsubscribeUsuarios) unsubscribeUsuarios(); // Apaga el escuchador al salir
+    if (unsubscribeUsuarios) unsubscribeUsuarios(); 
     localStorage.removeItem("user");
     location.reload();
 };
@@ -224,11 +221,11 @@ window.abrirPanelAdmin = function() {
     document.getElementById("app").classList.add("hidden");
     document.getElementById("admin-panel").classList.remove("hidden");
     document.getElementById("admin-msg").innerText = "";
-    escucharUsuariosAdmin(); // ACTIVAMOS el escuchador dinámico de usuarios al abrir
+    escucharUsuariosAdmin(); 
 };
 
 window.volverAlApp = function() {
-    if (unsubscribeUsuarios) unsubscribeUsuarios(); // APAGAMOS el escuchador al salir del panel
+    if (unsubscribeUsuarios) unsubscribeUsuarios(); 
     document.getElementById("admin-panel").classList.add("hidden");
     document.getElementById("app").classList.remove("hidden");
     const chatBox = document.getElementById("chat-box");
