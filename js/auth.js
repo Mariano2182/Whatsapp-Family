@@ -1,5 +1,4 @@
- import { db } from "./firebase.js";
-// MODIFICADO: Se agrega 'deleteDoc' a las herramientas importadas de Firestore
+import { db } from "./firebase.js";
 import { collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
 export async function sha256(text) {
@@ -75,10 +74,10 @@ export async function actualizarNombreUsuario(usuarioActual, nuevoUsuario) {
     return nuevoLimpio;
 }
 
-// NUEVA FUNCIÓN: Elimina una cuenta familiar físicamente de Firestore
+// MODIFICADO: Protege el usuario root 'marian'
 export async function eliminarUsuario(usuarioAEliminar) {
     const uLimpio = usuarioAEliminar.trim().toLowerCase();
-    if (uLimpio === "nano") throw new Error("Filtro de seguridad: No puedes eliminar la cuenta raíz de superadmin.");
+    if (uLimpio === "marian") throw new Error("Filtro de seguridad: No puedes eliminar la cuenta raíz de superadmin.");
 
     const q = query(collection(db, "usuarios"), where("usuario", "==", uLimpio));
     const snap = await getDocs(q);
@@ -89,7 +88,6 @@ export async function eliminarUsuario(usuarioAEliminar) {
     return true;
 }
 
-// NUEVA FUNCIÓN: Encripta una nueva clave y reemplaza la anterior del familiar
 export async function cambiarPasswordUsuario(usuarioAEditar, nuevaPassword) {
     const uLimpio = usuarioAEditar.trim().toLowerCase();
     if (!nuevaPassword.trim()) throw new Error("La contraseña no puede guardarse en blanco.");
@@ -105,12 +103,13 @@ export async function cambiarPasswordUsuario(usuarioAEditar, nuevaPassword) {
     return true;
 }
 
+// MODIFICADO: Crea por defecto el usuario 'marian'
 export async function verificarYCrearUsuarioDefecto() {
     const querySnapshot = await getDocs(collection(db, "usuarios"));
     if (querySnapshot.empty) {
-        const hashContrasena = await sha256("nano123");
+        const hashContrasena = await sha256("marian123");
         await addDoc(collection(db, "usuarios"), {
-            usuario: "nano",
+            usuario: "marian",
             passwordHash: hashContrasena,
             rol: "superadmin"
         });
