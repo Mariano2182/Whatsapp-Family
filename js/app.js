@@ -1,10 +1,15 @@
 import { db } from "./firebase.js";
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+// NUEVO: Importación de módulos de almacenamiento para archivos e imágenes
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-storage.js";
 import { loginUser, verificarYCrearUsuarioDefecto, registrarNuevoUsuario, actualizarNombreUsuario, eliminarUsuario, cambiarPasswordUsuario } from "./auth.js";
 
 let currentUser = null;
 let unsubscribeChat = null;
 let unsubscribeUsuarios = null; 
+
+// NUEVO: Instanciación del módulo de almacenamiento global
+const storage = getStorage();
 
 function mostrarPantallaSegunRol(user) {
     document.getElementById("login-container").classList.add("hidden");
@@ -64,9 +69,17 @@ function cargarChatEnTiempoReal() {
                 botonBorrar = `<span class="delete-btn" onclick="eliminarMensaje('${idDoc}')" title="Eliminar para todos">🗑️</span>`;
             }
 
+            // MODIFICADO: Valida si el mensaje guardado contiene un enlace de imagen
+            let contenidoMensaje = "";
+            if (datos.imagenUrl) {
+                contenidoMensaje = `<img src="${datos.imagenUrl}" style="max-width: 100%; max-height: 220px; border-radius: 6px; display: block; margin-top: 5px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" onclick="window.open('${datos.imagenUrl}', '_blank')" title="Ver imagen completa">`;
+            } else {
+                contenidoMensaje = `<span style="display:block;">${datos.texto}</span>`;
+            }
+
             divMensaje.innerHTML = `
                 <span class="msg-meta">${datos.remitente}</span> 
-                <span style="display:block;">${datos.texto}</span>
+                ${contenidoMensaje}
                 <span class="msg-time">${horaFormateada}</span>
                 ${botonBorrar}
             `;
@@ -77,7 +90,58 @@ function cargarChatEnTiempoReal() {
     });
 }
 
-// MODIFICADO: Aplica el escudo visual a 'marian' en la lista en tiempo real
+// NUEVA FUNCIÓN: Lanza de manera indirecta el selector nativo de archivos del sistema
+window.seleccionarFoto = function() {
+    document.getElementById("file-input").click();
+};
+
+// NUEVA FUNCIÓN: Procesa el archivo, lo sube al Bucket de Storage y genera el registro en Firestore
+window.subirFoto = async function(elementoInput) {
+    const archivo = elementoInput.files[0];
+    if (!archivo) return;
+
+    if (!archivo.type.startsWith("image/")) {
+        alert("Por favor, selecciona únicamente archivos de imagen (PNG, JPG, GIF).");
+        return;
+    }
+
+    const msgInput = document.getElementById("msg-input");
+    const placeholderOriginal = msgInput.placeholder;
+    
+    // Feedback visual de carga bloqueando la barra momentáneamente
+    msgInput.disabled = true;
+    msgInput.placeholder = "Subiendo imagen familiar... ⏳";
+
+    try {
+        // Estructura de ruta limpia por marcas de tiempo únicas para evitar colisiones de nombres
+        const nombreUnico = `${Date.now()}_${archivo.name}`;
+        const storageRef = ref(storage, `fotos_chat/${nombreUnico}`);
+
+        // Subir los bytes del archivo binario a la nube
+        const snapshot = await uploadBytes(storageRef, archivo);
+        
+        // Extraer la URL pública generada por Firebase
+        const URLPublica = await getDownloadURL(snapshot.ref);
+
+        // Guardar la referencia dentro de la colección tradicional de Firestore
+        await addDoc(collection(db, "mensajes"), {
+            texto: "",
+            imagenUrl: URLPublica,
+            remitente: currentUser.usuario,
+            fecha: serverTimestamp()
+        });
+
+    } catch (e) {
+        console.error("Fallo general en la carga del archivo:", e);
+        alert("Hubo un error al procesar o subir la foto. Revisa las reglas de Storage.");
+    } finally {
+        // Restablecer interfaz de usuario
+        msgInput.disabled = false;
+        msgInput.placeholder = placeholderOriginal;
+        elementoInput.value = ""; // Resetea el input para permitir re-subir la misma foto si se desea
+    }
+};
+
 function escucharUsuariosAdmin() {
     if (unsubscribeUsuarios) unsubscribeUsuarios();
     const listaBox = document.getElementById("lista-usuarios");
@@ -92,7 +156,6 @@ function escucharUsuariosAdmin() {
 
             let botonesAccion = "";
             
-            // MODIFICADO: El escudo ahora protege a 'marian'
             if (u.usuario !== "marian") {
                 botonesAccion = `
                     <div>
