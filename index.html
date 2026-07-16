@@ -19,9 +19,9 @@
         .delete-btn { position: absolute; right: 8px; top: 8px; cursor: pointer; font-size: 0.8em; opacity: 0.4; transition: opacity 0.2s; }
         .delete-btn:hover { opacity: 1; color: red; }
 
-        .input-chat-area { display: flex; background-color: #f0f2f5; padding: 10px; gap: 10px; border-top: 1px solid #ddd; }
-        .input-chat-area input { flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #ccc; outline: none; }
-        .input-chat-area button { background-color: #00a884; color: white; border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 1.1em; }
+        .input-chat-area { display: flex; background-color: #f0f2f5; padding: 10px; gap: 10px; border-top: 1px solid #ddd; align-items: center; }
+        .input-chat-area input[type="text"] { flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #ccc; outline: none; }
+        .input-chat-area button { background-color: #00a884; color: white; border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 1.1em; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
         
         .user-list-box { max-height: 180px; overflow-y: auto; background-color: #ffffff; border: 1px solid #ccc; border-radius: 5px; padding: 5px; margin-top: 10px; }
         .user-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #eee; font-size: 0.9em; }
@@ -53,6 +53,9 @@
             </div>
             <div id="chat-box" class="messages-box"></div>
             <div class="input-chat-area">
+                <button onclick="seleccionarFoto()" style="background-color: #667781;" title="Enviar imagen">📎</button>
+                <input type="file" id="file-input" accept="image/*" style="display: none;" onchange="subirFoto(this)">
+                
                 <input type="text" id="msg-input" placeholder="Escribe un mensaje familiar...">
                 <button onclick="enviarMensaje()">➤</button>
             </div>
