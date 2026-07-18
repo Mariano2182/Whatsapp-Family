@@ -6,8 +6,8 @@ let currentUser = null;
 let unsubscribeChat = null;
 let unsubscribeUsuarios = null; 
 
-// 🚨 PEGA AQUÍ LA API KEY QUE COPIASTE DE IMGBB
-const IMGBB_API_KEY = "TU_LLAVE_DE_IMGBB_AQUÍ";
+// 🔑 Tu clave API de ImgBB asignada y lista para funcionar
+const IMGBB_API_KEY = "4a52316c7553d2229d68717ee77998fa";
 
 function mostrarPantallaSegunRol(user) {
     document.getElementById("login-container").classList.add("hidden");
@@ -64,13 +64,12 @@ function cargarChatEnTiempoReal() {
 
             let botonBorrar = "";
             if (esMio || esSuperAdmin) {
-                botonBorrar = `<span class="delete-btn" onclick="eliminarMensaje('${idDoc}')" title="Eliminar para todos">🗑️</span>`;
+                botonBorrar = `<span class="delete-btn" onclick="eliminarMensaje('${idDoc}')" title="Eliminar mensaje">🗑️</span>`;
             }
 
-            // Valida si el mensaje guardado contiene un enlace de imagen externa
             let contenidoMensaje = "";
             if (datos.imagenUrl) {
-                contenidoMensaje = `<img src="${datos.imagenUrl}" style="max-width: 100%; max-height: 220px; border-radius: 6px; display: block; margin-top: 5px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" onclick="window.open('${datos.imagenUrl}', '_blank')" title="Ver imagen completa">`;
+                contenidoMensaje = `<img src="${datos.imagenUrl}" style="max-width: 100%; max-height: 220px; border-radius: 6px; display: block; margin-top: 5px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" onclick="window.open('${datos.imagenUrl}', '_blank')" title="Ver en tamaño completo">`;
             } else {
                 contenidoMensaje = `<span style="display:block;">${datos.texto}</span>`;
             }
@@ -92,7 +91,6 @@ window.seleccionarFoto = function() {
     document.getElementById("file-input").click();
 };
 
-// NUEVA FUNCIÓN OPTIMIZADA: Sube la foto a ImgBB de forma 100% gratuita
 window.subirFoto = async function(elementoInput) {
     const archivo = elementoInput.files[0];
     if (!archivo) return;
@@ -109,11 +107,9 @@ window.subirFoto = async function(elementoInput) {
     msgInput.placeholder = "Subiendo imagen familiar... ⏳";
 
     try {
-        // Creamos el paquete binario para enviarlo por HTTP
         const formData = new FormData();
         formData.append("image", archivo);
 
-        // Hacemos la petición directa al servidor seguro de ImgBB
         const respuesta = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
             method: "POST",
             body: formData
@@ -122,10 +118,8 @@ window.subirFoto = async function(elementoInput) {
         const resultado = await respuesta.json();
 
         if (resultado.success) {
-            // Obtenemos el enlace unívoco generado por la plataforma
             const URLPublica = resultado.data.url;
 
-            // Almacenamos el enlace en Firestore para que se distribuya a toda la familia
             await addDoc(collection(db, "mensajes"), {
                 texto: "",
                 imagenUrl: URLPublica,
@@ -133,13 +127,13 @@ window.subirFoto = async function(elementoInput) {
                 fecha: serverTimestamp()
             });
         } else {
-            throw new Error("El servidor de imágenes rechazó el archivo.");
+            throw new Error("El servidor de ImgBB rechazó la imagen.");
         }
 
     } catch (e) {
-        console.error("Error en la carga hacia ImgBB:", e);
-        alert("Hubo un problema al procesar la foto. Verifica que tu API Key esté bien pegada.");
-    } finally {
+        console.error("Error en el envío hacia ImgBB:", e);
+        alert("Hubo un problema al subir la foto de forma remota.");
+    } finaly {
         msgInput.disabled = false;
         msgInput.placeholder = placeholderOriginal;
         elementoInput.value = ""; 
@@ -178,42 +172,42 @@ function escucharUsuariosAdmin() {
 }
 
 window.panelDarBaja = async function(usuario) {
-    const confirmar = confirm(`¿Estás completamente seguro de dar de BAJA la cuenta de '${usuario}'? No podrá volver a loguearse.`);
+    const confirmar = confirm(`¿Estás seguro de dar de BAJA a '${usuario}'? No podrá volver a ingresar.`);
     if (!confirmar) return;
 
     try {
         await eliminarUsuario(usuario);
-        alert(`La cuenta de '${usuario}' fue eliminada del sistema con éxito.`);
+        alert(`La cuenta de '${usuario}' fue removida del sistema.`);
     } catch(e) {
         alert(e.message);
     }
 };
 
 window.panelCambiarClave = async function(usuario) {
-    const nuevaClave = prompt(`Escribe la NUEVA CONTRASEÑA para el familiar '${usuario}':`);
+    const nuevaClave = prompt(`Escribe la nueva contraseña para '${usuario}':`);
     if (nuevaClave === null) return;
     
     if (!nuevaClave.trim()) {
-        alert("Error: La contraseña no puede estar en blanco.");
+        alert("La contraseña no puede estar vacía.");
         return;
     }
 
     try {
         await cambiarPasswordUsuario(usuario, nuevaClave);
-        alert(`¡Contraseña de '${usuario}' actualizada correctamente!`);
+        alert(`¡Contraseña de '${usuario}' cambiada con éxito!`);
     } catch(e) {
         alert(e.message);
     }
 };
 
 window.eliminarMensaje = async function(idDoc) {
-    const confirmar = confirm("¿Estás seguro de que quieres eliminar este mensaje para todos?");
+    const confirmar = confirm("¿Quieres eliminar este mensaje para todos?");
     if (!confirmar) return;
 
     try {
         await deleteDoc(doc(db, "mensajes", idDoc));
     } catch (e) {
-        console.error("Error al eliminar el mensaje:", e);
+        console.error("Error al borrar el documento:", e);
     }
 };
 
@@ -227,7 +221,7 @@ window.cambiarNombreFamiliar = async function() {
     try {
         const nombreFinal = await actualizarNombreUsuario(actual, nuevo);
         adminMsg.style.color = "green";
-        adminMsg.innerText = `¡Éxito! Se cambió el nombre de '${actual}' a '${nombreFinal}'.`;
+        adminMsg.innerText = `¡Cambiado con éxito de '${actual}' a '${nombreFinal}'!`;
 
         if (currentUser.usuario === actual.trim().toLowerCase()) {
             currentUser.usuario = nombreFinal;
@@ -257,7 +251,7 @@ window.enviarMensaje = async function() {
         });
         input.value = "";
     } catch (e) {
-        console.error("Error al enviar mensaje:", e);
+        console.error("Error enviando texto:", e);
     }
 };
 
