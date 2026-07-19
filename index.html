@@ -249,8 +249,9 @@
             </div>
             <div class="messages-container" id="chat-box"></div>
             <div class="input-area">
-                <button class="attach-btn" onclick="seleccionarFoto()" title="Enviar imagen familiar">📎</button>
-                <input type="file" id="file-input" style="display: none;" onchange="subirFoto(this)" accept="image/*">
+                <button class="attach-btn" onclick="seleccionarFoto()" title="Tomar foto familiar">📷</button>
+                
+                <input type="file" id="file-input" style="display: none;" onchange="subirFoto(this)" accept="image/*" capture="environment">
                 
                 <input type="text" id="msg-input" class="message-input" placeholder="Escribe un mensaje...">
                 <button class="send-btn" onclick="enviarMensaje()">➤</button>
