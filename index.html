@@ -236,7 +236,7 @@
             display: flex; 
             align-items: center; 
             padding: 8px 12px; 
-            gap: 8px;
+            gap: 10px;
         }
 
         .message-input { 
@@ -316,8 +316,11 @@
             </div>
 
             <div class="input-area">
-                <button class="attach-btn" onclick="seleccionarFoto()" title="Tomar foto familiar">📷</button>
-                <input type="file" id="file-input" style="display: none;" onchange="subirFoto(this)" accept="image/*" capture="environment">
+                <button class="attach-btn" onclick="abrirGaleria()" title="Elegir foto de la galería">📎</button>
+                <input type="file" id="gallery-input" style="display: none;" onchange="subirFoto(this)" accept="image/*">
+
+                <button class="attach-btn" onclick="abrirCamara()" title="Tomar una foto en directo">📷</button>
+                <input type="file" id="camera-input" style="display: none;" onchange="subirFoto(this)" accept="image/*" capture="environment">
                 
                 <input type="text" id="msg-input" class="message-input" placeholder="Escribe un mensaje...">
                 <button class="send-btn" onclick="enviarMensaje()">➤</button>
