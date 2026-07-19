@@ -5,7 +5,7 @@ import { loginUser, verificarYCrearUsuarioDefecto, registrarNuevoUsuario, actual
 let currentUser = null;
 let unsubscribeChat = null;
 let unsubscribeUsuarios = null; 
-let replyTarget = null; // Guardará el mensaje al que se está respondiendo
+let replyTarget = null; 
 
 const IMGBB_API_KEY = "4a52316c7553d2229d68717ee77998fa";
 
@@ -56,8 +56,8 @@ function cargarChatEnTiempoReal() {
             }
 
             const horas = String(fechaMensaje.getHours()).padStart(2, '0');
-            const minutos = String(fechaMensaje.getMinutes()).padStart(2, '0');
-            horaFormateada = `${horas}:${minutos}`;
+            const minutes = String(fechaMensaje.getMinutes()).padStart(2, '0');
+            horaFormateada = `${horas}:${minutes}`;
 
             const esMio = datos.remitente === currentUser.usuario;
             const esSuperAdmin = currentUser.rol === "superadmin";
@@ -67,11 +67,16 @@ function cargarChatEnTiempoReal() {
                 botonBorrar = `<span class="delete-btn" onclick="eliminarMensaje('${idDoc}')" title="Eliminar mensaje">🗑️</span>`;
             }
 
-            // Sanitizar texto para evitar que rompa los atributos HTML de las funciones onclick
-            const textoLimpio = datos.texto ? datos.texto.replace(/'/g, "\\'").replace(/"/g, '&quot;') : "📷 Imagen";
-            let botonResponder = `<span class="reply-btn" onclick="seleccionarRespuesta('${idDoc}', '${textoLimpio}', '${datos.remitente}')" title="Responder">↩️</span>`;
+            // Sanitizar texto para previsualización en respuestas citas
+            let textoPreview = "📝 Mensaje";
+            if (datos.texto) {
+                textoPreview = datos.texto.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            } else if (datos.imagenUrl) {
+                textoPreview = "📷 Imagen";
+            }
 
-            // Construcción del bloque de respuesta (si el mensaje responde a otro)
+            let botonResponder = `<span class="reply-btn" onclick="seleccionarRespuesta('${idDoc}', '${textoPreview}', '${datos.remitente}')" title="Responder">↩️</span>`;
+
             let bloqueCita = "";
             if (datos.replyTo) {
                 bloqueCita = `
@@ -104,24 +109,16 @@ function cargarChatEnTiempoReal() {
     });
 }
 
-// Funciones para manejar el estado de las respuestas
-window.seleccionarRespuesta = function(id, texto, remitente) {
-    replyTarget = { msgId: id, texto: texto, remitente: remitente };
-    document.getElementById("reply-preview-user").innerText = `Respondiendo a ${remitente}`;
-    document.getElementById("reply-preview-text").innerText = texto;
-    document.getElementById("reply-preview-box").classList.remove("hidden");
-    document.getElementById("msg-input").focus();
+// Funciones para disparar visualmente los inputs ocultos
+window.abrirGaleria = function() {
+    document.getElementById("gallery-input").click();
 };
 
-window.cancelarRespuesta = function() {
-    replyTarget = null;
-    document.getElementById("reply-preview-box").classList.add("hidden");
+window.abrirCamara = function() {
+    document.getElementById("camera-input").click();
 };
 
-window.seleccionarFoto = function() {
-    document.getElementById("file-input").click();
-};
-
+// Sube el archivo seleccionado (venga de la galería o de la cámara directa) a ImgBB
 window.subirFoto = async function(elementoInput) {
     const archivo = elementoInput.files[0];
     if (!archivo) return;
@@ -174,8 +171,21 @@ window.subirFoto = async function(elementoInput) {
     } finally {
         msgInput.disabled = false;
         msgInput.placeholder = placeholderOriginal;
-        elementoInput.value = ""; 
+        elementoInput.value = ""; // Resetea el input para permitir subir la misma foto consecutivamente
     }
+};
+
+window.seleccionarRespuesta = function(id, texto, remitente) {
+    replyTarget = { msgId: id, texto: texto, remitente: remitente };
+    document.getElementById("reply-preview-user").innerText = `Respondiendo a ${remitente}`;
+    document.getElementById("reply-preview-text").innerText = texto;
+    document.getElementById("reply-preview-box").classList.remove("hidden");
+    document.getElementById("msg-input").focus();
+};
+
+window.cancelarRespuesta = function() {
+    replyTarget = null;
+    document.getElementById("reply-preview-box").classList.add("hidden");
 };
 
 function escucharUsuariosAdmin() {
@@ -288,14 +298,13 @@ window.enviarMensaje = async function() {
             fecha: serverTimestamp()
         };
 
-        // Si hay una respuesta activa, la metemos al documento
         if (replyTarget) {
             nuevoMensaje.replyTo = replyTarget;
         }
 
         await addDoc(collection(db, "mensajes"), nuevoMensaje);
         input.value = "";
-        cancelarRespuesta(); // Cierra el preview flotante
+        cancelarRespuesta(); 
     } catch (e) {
         console.error("Error enviando texto:", e);
     }
