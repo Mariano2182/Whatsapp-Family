@@ -271,7 +271,6 @@ window.cerrarModalDM = function() {
     document.getElementById("modal-dm").classList.add("hidden");
 };
 
-// Revisa si ya existía un chat privado con ese familiar para abrirlo, o crea uno nuevo de cero
 async function iniciarChatIndividual(otroUsuario) {
     cerrarModalDM();
     
@@ -433,6 +432,35 @@ function escucharUsuariosAdmin() {
         });
     });
 }
+
+// 🆕 NUEVA FUNCIÓN: Ejecuta el registro en Firebase y limpia los campos del panel
+window.crearNuevoUsuarioAdmin = async function() {
+    const usuario = document.getElementById("reg-usuario").value.trim();
+    const password = document.getElementById("reg-password").value.trim();
+    const rol = document.getElementById("reg-rol").value;
+    const adminRegMsg = document.getElementById("admin-reg-msg");
+
+    adminRegMsg.innerText = "";
+
+    if (!usuario || !password) {
+        adminRegMsg.style.color = "red";
+        adminRegMsg.innerText = "Por favor, completa el nombre de usuario y la contraseña.";
+        return;
+    }
+
+    try {
+        await registrarNuevoUsuario(usuario, password, rol);
+        adminRegMsg.style.color = "green";
+        adminRegMsg.innerText = `¡Familiar '${usuario}' registrado con éxito como ${rol}!`;
+        
+        // Limpiamos campos
+        document.getElementById("reg-usuario").value = "";
+        document.getElementById("reg-password").value = "";
+    } catch (e) {
+        adminRegMsg.style.color = "red";
+        adminRegMsg.innerText = e.message;
+    }
+};
 
 window.panelDarBaja = async function(usuario) {
     if (!confirm(`¿Estás seguro de dar de BAJA a '${usuario}'?`)) return;
