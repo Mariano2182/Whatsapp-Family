@@ -169,9 +169,66 @@
         .msg-meta { font-size: 0.78rem; color: #008069; font-weight: bold; display: block; margin-bottom: 2px; }
         .msg-time { font-size: 0.68rem; color: #667781; display: block; text-align: right; margin-top: 4px; }
 
+        /* Botones de acción en los mensajes (responder y eliminar) */
         .delete-btn { position: absolute; top: 4px; right: 6px; cursor: pointer; opacity: 0; transition: opacity 0.2s; font-size: 0.75rem; }
-        .msg:hover .delete-btn { opacity: 0.6; }
-        .delete-btn:hover { opacity: 1 !important; }
+        .reply-btn { position: absolute; top: 4px; right: 24px; cursor: pointer; opacity: 0; transition: opacity 0.2s; font-size: 0.75rem; }
+        .msg:hover .delete-btn, .msg:hover .reply-btn { opacity: 0.5; }
+        .delete-btn:hover, .reply-btn:hover { opacity: 1 !important; }
+
+        /* Estilo del bloque citado DENTRO del mensaje */
+        .msg-quote {
+            background: rgba(0, 0, 0, 0.04);
+            border-left: 3px solid var(--wa-green-dark);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.82rem;
+            margin-bottom: 6px;
+            color: #54656f;
+            display: block;
+        }
+        .msg-quote-user {
+            font-weight: bold;
+            color: var(--wa-green-dark);
+            display: block;
+            font-size: 0.76rem;
+            margin-bottom: 1px;
+        }
+
+        /* Barra de previsualización de respuesta (arriba de la barra de escribir) */
+        .reply-preview-box {
+            background-color: #f0f2f5;
+            border-left: 4px solid var(--wa-green-dark);
+            padding: 6px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e1e1e1;
+        }
+        .reply-preview-info {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            max-width: 85%;
+        }
+        .reply-preview-user {
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: var(--wa-green-dark);
+        }
+        .reply-preview-text {
+            font-size: 0.85rem;
+            color: #54656f;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .reply-preview-close {
+            cursor: pointer;
+            font-size: 1.2rem;
+            color: #667781;
+            font-weight: bold;
+            padding: 0 4px;
+        }
 
         /* Barra Inferior Elíptica */
         .input-area { 
@@ -247,10 +304,19 @@
                     <button onclick="logout()">Salir</button>
                 </div>
             </div>
+            
             <div class="messages-container" id="chat-box"></div>
+
+            <div id="reply-preview-box" class="reply-preview-box hidden">
+                <div class="reply-preview-info">
+                    <span id="reply-preview-user" class="reply-preview-user">Respondiendo a</span>
+                    <span id="reply-preview-text" class="reply-preview-text">Mensaje citado...</span>
+                </div>
+                <span class="reply-preview-close" onclick="cancelarRespuesta()">×</span>
+            </div>
+
             <div class="input-area">
                 <button class="attach-btn" onclick="seleccionarFoto()" title="Tomar foto familiar">📷</button>
-                
                 <input type="file" id="file-input" style="display: none;" onchange="subirFoto(this)" accept="image/*" capture="environment">
                 
                 <input type="text" id="msg-input" class="message-input" placeholder="Escribe un mensaje...">
