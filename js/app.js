@@ -5,8 +5,8 @@ import { loginUser, verificarYCrearUsuarioDefecto, registrarNuevoUsuario, actual
 let currentUser = null;
 let unsubscribeChat = null;
 let unsubscribeUsuarios = null; 
+let replyTarget = null; // Guardará el mensaje al que se está respondiendo
 
-// 🔑 Tu clave API de ImgBB asignada y lista para funcionar
 const IMGBB_API_KEY = "4a52316c7553d2229d68717ee77998fa";
 
 function mostrarPantallaSegunRol(user) {
@@ -67,6 +67,21 @@ function cargarChatEnTiempoReal() {
                 botonBorrar = `<span class="delete-btn" onclick="eliminarMensaje('${idDoc}')" title="Eliminar mensaje">🗑️</span>`;
             }
 
+            // Sanitizar texto para evitar que rompa los atributos HTML de las funciones onclick
+            const textoLimpio = datos.texto ? datos.texto.replace(/'/g, "\\'").replace(/"/g, '&quot;') : "📷 Imagen";
+            let botonResponder = `<span class="reply-btn" onclick="seleccionarRespuesta('${idDoc}', '${textoLimpio}', '${datos.remitente}')" title="Responder">↩️</span>`;
+
+            // Construcción del bloque de respuesta (si el mensaje responde a otro)
+            let bloqueCita = "";
+            if (datos.replyTo) {
+                bloqueCita = `
+                    <div class="msg-quote">
+                        <span class="msg-quote-user">${datos.replyTo.remitente}</span>
+                        <span>${datos.replyTo.texto}</span>
+                    </div>
+                `;
+            }
+
             let contenidoMensaje = "";
             if (datos.imagenUrl) {
                 contenidoMensaje = `<img src="${datos.imagenUrl}" style="max-width: 100%; max-height: 220px; border-radius: 6px; display: block; margin-top: 5px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" onclick="window.open('${datos.imagenUrl}', '_blank')" title="Ver en tamaño completo">`;
@@ -76,8 +91,10 @@ function cargarChatEnTiempoReal() {
 
             divMensaje.innerHTML = `
                 <span class="msg-meta">${datos.remitente}</span> 
+                ${bloqueCita}
                 ${contenidoMensaje}
                 <span class="msg-time">${horaFormateada}</span>
+                ${botonResponder}
                 ${botonBorrar}
             `;
             chatBox.appendChild(divMensaje);
@@ -86,6 +103,20 @@ function cargarChatEnTiempoReal() {
         chatBox.scrollTop = chatBox.scrollHeight;
     });
 }
+
+// Funciones para manejar el estado de las respuestas
+window.seleccionarRespuesta = function(id, texto, remitente) {
+    replyTarget = { msgId: id, texto: texto, remitente: remitente };
+    document.getElementById("reply-preview-user").innerText = `Respondiendo a ${remitente}`;
+    document.getElementById("reply-preview-text").innerText = texto;
+    document.getElementById("reply-preview-box").classList.remove("hidden");
+    document.getElementById("msg-input").focus();
+};
+
+window.cancelarRespuesta = function() {
+    replyTarget = null;
+    document.getElementById("reply-preview-box").classList.add("hidden");
+};
 
 window.seleccionarFoto = function() {
     document.getElementById("file-input").click();
@@ -120,12 +151,19 @@ window.subirFoto = async function(elementoInput) {
         if (resultado.success) {
             const URLPublica = resultado.data.url;
 
-            await addDoc(collection(db, "mensajes"), {
+            const nuevoMensaje = {
                 texto: "",
                 imagenUrl: URLPublica,
                 remitente: currentUser.usuario,
                 fecha: serverTimestamp()
-            });
+            };
+
+            if (replyTarget) {
+                nuevoMensaje.replyTo = replyTarget;
+            }
+
+            await addDoc(collection(db, "mensajes"), nuevoMensaje);
+            cancelarRespuesta();
         } else {
             throw new Error("El servidor de ImgBB rechazó la imagen.");
         }
@@ -244,12 +282,20 @@ window.enviarMensaje = async function() {
     if (!texto) return;
 
     try {
-        await addDoc(collection(db, "mensajes"), {
+        const nuevoMensaje = {
             texto: texto,
             remitente: currentUser.usuario,
             fecha: serverTimestamp()
-        });
+        };
+
+        // Si hay una respuesta activa, la metemos al documento
+        if (replyTarget) {
+            nuevoMensaje.replyTo = replyTarget;
+        }
+
+        await addDoc(collection(db, "mensajes"), nuevoMensaje);
         input.value = "";
+        cancelarRespuesta(); // Cierra el preview flotante
     } catch (e) {
         console.error("Error enviando texto:", e);
     }
