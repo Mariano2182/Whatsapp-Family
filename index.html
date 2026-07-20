@@ -163,6 +163,7 @@
 </head>
 <body>
     <div class="container">
+        <!-- VISTA 1: CONTROL DE ACCESO -->
         <div id="login-container" class="login-box">
             <h2>Chat Familiar</h2>
             <p>Ingresa tu cuenta asignada para empezar a platicar</p>
@@ -172,6 +173,7 @@
             <div id="error" class="error-msg"></div>
         </div>
 
+        <!-- VISTA 2: LISTA DE CHATS (GRUPOS Y INDIVIDUALES) -->
         <div id="chats-list-view" class="view-layout hidden">
             <div class="app-header">
                 <div class="title-area">
@@ -192,6 +194,7 @@
             <div id="lista-chats-items" class="chats-scroll-list"></div>
         </div>
 
+        <!-- VISTA 3: SALA DE CHAT SELECCIONADO -->
         <div id="chat-room-view" class="view-layout chat-interface hidden">
             <div class="app-header">
                 <div class="title-area" style="flex-direction: row; align-items: center; gap: 10px;">
@@ -225,6 +228,7 @@
             </div>
         </div>
 
+        <!-- MODAL: CREAR NUEVO GRUPO -->
         <div id="modal-grupo" class="custom-modal-overlay hidden">
             <div class="modal-card">
                 <h3>Crear Grupo Familiar</h3>
@@ -238,6 +242,7 @@
             </div>
         </div>
 
+        <!-- MODAL: NUEVO CHAT INDIVIDUAL -->
         <div id="modal-dm" class="custom-modal-overlay hidden">
             <div class="modal-card">
                 <h3>Iniciar Chat Privado</h3>
@@ -249,25 +254,11 @@
             </div>
         </div>
 
+        <!-- VISTA 4: GESTIÓN DE USUARIOS (SÓLO SUPERADMIN) -->
         <div id="admin-panel" class="admin-interface hidden">
             <button class="back-btn" onclick="volverAlAppDesdeAdmin()">⬅ Volver</button>
             <h2>Panel de Administración</h2>
-            
             <div id="lista-usuarios"></div>
-            
-            <div class="admin-section">
-                <h3>Registrar Nuevo Familiar</h3>
-                <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;">
-                    <input type="text" id="reg-usuario" placeholder="Nombre de usuario" style="flex: 1; min-width: 130px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; outline: none;">
-                    <input type="password" id="reg-password" placeholder="Contraseña" style="flex: 1; min-width: 130px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; outline: none;">
-                    <select id="reg-rol" style="padding: 10px; border: 1px solid #ccc; border-radius: 6px; outline: none; background: white; height: 40px; font-size: 0.9rem;">
-                        <option value="usuario">Usuario estándar</option>
-                        <option value="admin">Admin (Crea grupos)</option>
-                    </select>
-                    <button onclick="crearNuevoUsuarioAdmin()" style="padding: 10px 15px; background: var(--wa-green-dark); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; height: 40px;">Registrar</button>
-                </div>
-                <div id="admin-reg-msg" style="margin-top: 10px; font-weight: bold; font-size: 0.9rem;"></div>
-            </div>
             
             <div class="admin-section">
                 <h3>Modificar Nombre de Familiar</h3>
