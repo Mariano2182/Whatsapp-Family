@@ -1,6 +1,18 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+    <!-- Enlace al manifiesto de la aplicación -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#00a884">
+
+<!-- Registro del Service Worker -->
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js')
+      .then(() => console.log("Aplicación lista para instalar"))
+      .catch(err => console.log("Error registrando PWA:", err));
+  }
+</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat Familiar</title>
