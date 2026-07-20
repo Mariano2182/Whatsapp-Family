@@ -10,7 +10,7 @@ let unsubscribeChatsList = null;
 let unsubscribeChatMessages = null;
 let unsubscribeUsuariosAdmin = null; 
 
-let listaIniciada = false; // Controla que no suenen los mensajes viejos al cargar la app
+let listaIniciada = false; 
 let replyTarget = null; 
 const IMGBB_API_KEY = "4a52316c7553d2229d68717ee77998fa";
 
@@ -19,11 +19,11 @@ function reproducirSonidoNotificacion() {
     try {
         const context = new (window.AudioContext || window.webkitAudioContext)();
         
-        // Primer tono corto
+        // Tono 1
         const osc1 = context.createOscillator();
         const gain1 = context.createGain();
         osc1.type = 'sine';
-        osc1.frequency.setValueAtTime(587.33, context.currentTime); // Nota Re5
+        osc1.frequency.setValueAtTime(587.33, context.currentTime); 
         gain1.gain.setValueAtTime(0.06, context.currentTime);
         gain1.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.08);
         osc1.connect(gain1);
@@ -31,12 +31,12 @@ function reproducirSonidoNotificacion() {
         osc1.start();
         osc1.stop(context.currentTime + 0.08);
         
-        // Segundo tono un poco más agudo (70 milisegundos después)
+        // Tono 2
         setTimeout(() => {
             const osc2 = context.createOscillator();
             const gain2 = context.createGain();
             osc2.type = 'sine';
-            osc2.frequency.setValueAtTime(880, context.currentTime); // Nota La5
+            osc2.frequency.setValueAtTime(880, context.currentTime); 
             gain2.gain.setValueAtTime(0.06, context.currentTime);
             gain2.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.12);
             osc2.connect(gain2);
@@ -45,7 +45,7 @@ function reproducirSonidoNotificacion() {
             osc2.stop(context.currentTime + 0.12);
         }, 70);
     } catch (e) {
-        console.log("El navegador bloqueó el audio temporalmente hasta una interacción del usuario.");
+        console.log("Audio bloqueado temporalmente por el navegador.");
     }
 }
 
@@ -74,10 +74,9 @@ function mostrarPantallaSegunRol(user) {
     escucharListaDeChats();
 }
 
-// Carga la lista principal y detecta en tiempo real las novedades para hacerlas sonar
 function escucharListaDeChats() {
     if (unsubscribeChatsList) unsubscribeChatsList();
-    listaIniciada = false; // Reseteamos al armar la lista
+    listaIniciada = false; 
 
     const q = query(collection(db, "chats"), where("participantes", "array-contains", currentUser.usuario));
 
@@ -128,12 +127,10 @@ function escucharListaDeChats() {
             listaBox.appendChild(divRow);
         });
 
-        // 🔔 DETECTOR DE NUEVOS MENSAJES RECIBIDOS EN TIEMPO REAL
         if (listaIniciada) {
             snapshot.docChanges().forEach(change => {
                 if (change.type === "modified" || change.type === "added") {
                     const chatData = change.doc.data();
-                    // Suena si el cambio viene de otra persona
                     if (chatData.ultimoRemitente && chatData.ultimoRemitente !== currentUser.usuario) {
                         reproducirSonidoNotificacion();
                     }
@@ -144,7 +141,7 @@ function escucharListaDeChats() {
     });
 }
 
-function abrirSalaChat(chatId, nombreChat, subetiqueta) {
+async function abrirSalaChat(chatId, nombreChat, subetiqueta) {
     activeChatId = chatId;
     cancelarRespuesta();
 
@@ -226,6 +223,61 @@ function abrirSalaChat(chatId, nombreChat, subetiqueta) {
         chatBox.scrollTop = chatBox.scrollHeight;
     });
 }
+
+async function login() {
+    const usuario = document.getElementById("usuario").value;
+    const password = document.getElementById("password").value;
+    const error = document.getElementById("error");
+    error.innerText = "";
+
+    try {
+        const user = await loginUser(usuario, password);
+        currentUser = user;
+        localStorage.setItem("user", JSON.stringify(user));
+        mostrarPantallaSegunRol(user);
+    } catch(e) {
+        error.innerText = e.message;
+    }
+}
+
+async function enviarMensaje() {
+    const input = document.getElementById("msg-input");
+    const texto = input.value.trim();
+    if (!texto || !activeChatId) return;
+
+    try {
+        const nuevoMensaje = {
+            texto: texto,
+            remitente: currentUser.usuario,
+            fecha: serverTimestamp()
+        };
+
+        if (replyTarget) nuevoMensaje.replyTo = replyTarget;
+
+        input.value = "";
+        cancelarRespuesta();
+
+        await addDoc(collection(db, "chats", activeChatId, "mensajes"), nuevoMensaje);
+        await updateDoc(doc(db, "chats", activeChatId), { 
+            ultimaFecha: serverTimestamp(),
+            ultimoRemitente: currentUser.usuario 
+        });
+    } catch (e) {
+        console.error("Error enviando texto:", e);
+    }
+}
+
+// Vinculación global para que responda el HTML tradicional
+window.login = login;
+window.enviarMensaje = enviarMensaje;
+
+window.logout = function(){
+    if (unsubscribeChatsList) unsubscribeChatsList();
+    if (unsubscribeChatMessages) unsubscribeChatMessages();
+    if (unsubscribeUsuariosAdmin) unsubscribeUsuariosAdmin(); 
+    localStorage.removeItem("user");
+    location.reload();
+};
 
 window.volverAListaChats = function() {
     if (unsubscribeChatMessages) unsubscribeChatMessages();
@@ -320,7 +372,6 @@ window.cerrarModalDM = function() {
 
 async function iniciarChatIndividual(otroUsuario) {
     cerrarModalDM();
-    
     try {
         const q = query(collection(db, "chats"), where("tipo", "==", "individual"), where("participantes", "array-contains", currentUser.usuario));
         const snapshot = await getDocs(q);
@@ -347,37 +398,9 @@ async function iniciarChatIndividual(otroUsuario) {
             abrirSalaChat(docRef.id, otroUsuario, "Chat privado");
         }
     } catch(e) {
-        console.error("Error al iniciar chat individual:", e);
+        console.error(e);
     }
 }
-
-window.enviarMensaje = async function() {
-    const input = document.getElementById("msg-input");
-    const texto = input.value.trim();
-    if (!texto || !activeChatId) return;
-
-    try {
-        const nuevoMensaje = {
-            texto: texto,
-            remitente: currentUser.usuario,
-            fecha: serverTimestamp()
-        };
-
-        if (replyTarget) nuevoMensaje.replyTo = replyTarget;
-
-        input.value = "";
-        cancelarRespuesta();
-
-        await addDoc(collection(db, "chats", activeChatId, "mensajes"), nuevoMensaje);
-        // Marcamos la última actividad y quién lo envió para controlar los sonidos
-        await updateDoc(doc(db, "chats", activeChatId), { 
-            ultimaFecha: serverTimestamp(),
-            ultimoRemitente: currentUser.usuario 
-        });
-    } catch (e) {
-        console.error("Error enviando texto:", e);
-    }
-};
 
 window.abrirGaleria = function() { document.getElementById("gallery-input").click(); };
 window.abrirCamara = function() { document.getElementById("camera-input").click(); };
@@ -419,7 +442,6 @@ window.subirFoto = async function(elementoInput) {
 
             cancelarRespuesta();
             await addDoc(collection(db, "chats", activeChatId, "mensajes"), nuevoMensaje);
-            // Marcamos la última actividad y quién lo envió para controlar los sonidos
             await updateDoc(doc(db, "chats", activeChatId), { 
                 ultimaFecha: serverTimestamp(),
                 ultimoRemitente: currentUser.usuario 
@@ -560,41 +582,24 @@ window.volverAlAppDesdeAdmin = function() {
     document.getElementById("chats-list-view").classList.remove("hidden");
 };
 
-window.login = async function(){
-    const usuario = document.getElementById("usuario").value;
-    const password = document.getElementById("password").value;
-    const error = document.getElementById("error");
-    error.innerText = "";
-
-    try {
-        const user = await loginUser(usuario, password);
-        currentUser = user;
-        localStorage.setItem("user", JSON.stringify(user));
-        mostrarPantallaSegunRol(user);
-    } catch(e) {
-        error.innerText = e.message;
-    }
-};
-
-window.logout = function(){
-    if (unsubscribeChatsList) unsubscribeChatsList();
-    if (unsubscribeChatMessages) unsubscribeChatMessages();
-    if (unsubscribeUsuariosAdmin) unsubscribeUsuariosAdmin(); 
-    localStorage.removeItem("user");
-    location.reload();
-};
-
+// ⌨️ ATAJOS DE TECLADO (Enter para mandar mensajes o loguear)
 document.addEventListener("keypress", function(e) {
-    if (e.key === "Enter" && document.activeElement === document.getElementById("msg-input")) {
-        enviarMensaje();
+    if (e.key === "Enter") {
+        if (document.activeElement === document.getElementById("msg-input")) {
+            enviarMensaje();
+        } else if (document.activeElement === document.getElementById("password") || document.activeElement === document.getElementById("usuario")) {
+            login();
+        }
     }
 });
 
-window.onload = async function(){
+// ⚡ INICIALIZACIÓN DIRECTA (Solución robusta para redes móviles)
+async function inicializarApp() {
     try { await verificarYCrearUsuarioDefecto(); } catch (err) {}
     const saved = localStorage.getItem("user");
     if (saved) {
         currentUser = JSON.parse(saved);
         mostrarPantallaSegunRol(currentUser);
     }
-};
+}
+inicializarApp();
