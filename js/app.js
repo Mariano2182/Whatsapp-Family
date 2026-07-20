@@ -849,4 +849,78 @@ async function inicializarApp() {
         localStorage.removeItem("user");
     }
 }
+// 👥 FUNCIONES PARA AGREGAR FAMILIARES A UN GRUPO EXISTENTE
+window.abrirModalAgregarIntegrante = async function() {
+    const modal = document.getElementById("modal-agregar-integrante");
+    const container = document.getElementById("lista-usuarios-agregar");
+    if (!modal || !container || !activeChatId) return;
+
+    modal.classList.remove("hidden");
+    container.innerHTML = "Cargando familiares... ⏳";
+
+    try {
+        // 1. Buscamos el chat actual para ver quién ya está adentro y no mostrarlo de nuevo
+        const chatsSnap = await getDocs(query(collection(db, "chats")));
+        let participantesActuales = [];
+        chatsSnap.forEach(d => {
+            if (d.id === activeChatId) participantesActuales = d.data().participantes || [];
+        });
+
+        // 2. Traemos a todos los usuarios registrados
+        const usersSnap = await getDocs(collection(db, "usuarios"));
+        container.innerHTML = "";
+
+        let contadorOpciones = 0;
+        usersSnap.forEach(docSnap => {
+            const u = docSnap.data().usuario;
+            // Si el familiar NO está en el grupo, se lo puede invitar
+            if (!participantesActuales.includes(u)) {
+                contadorOpciones++;
+                const label = document.createElement("label");
+                label.style.display = "flex";
+                label.style.alignItems = "center";
+                label.style.gap = "10px";
+                label.style.cursor = "pointer";
+                label.innerHTML = `<input type="checkbox" class="add-user-checkbox" value="${u}"> <span style="color:#111b21;">${u}</span>`;
+                container.appendChild(label);
+            }
+        });
+
+        if (contadorOpciones === 0) {
+            container.innerHTML = "<div style='color:#667781; font-size:0.9rem; text-align:center;'>Todos los familiares ya son miembros.</div>";
+        }
+    } catch (e) {
+        console.error("Error al abrir listado de integrantes:", e);
+        container.innerHTML = "Error al cargar la lista.";
+    }
+};
+
+window.cerrarModalAgregarIntegrante = function() {
+    const modal = document.getElementById("modal-agregar-integrante");
+    if (modal) modal.classList.add("hidden");
+};
+
+window.ejecutarAgregarIntegrantes = async function() {
+    if (!activeChatId) return;
+    const checkboxes = document.querySelectorAll(".add-user-checkbox:checked");
+    if (checkboxes.length === 0) {
+        alert("Por favor, selecciona al menos a un familiar.");
+        return;
+    }
+
+    const seleccionados = Array.from(checkboxes).map(cb => cb.value);
+
+    try {
+        const chatRef = doc(db, "chats", activeChatId);
+        // arrayUnion agrega los nombres de forma segura al array de participantes en Firebase
+        await updateDoc(chatRef, {
+            participantes: arrayUnion(...seleccionados)
+        });
+
+        alert("¡Familiares agregados con éxito al grupo! 🎉");
+        cerrarModalAgregarIntegrante();
+    } catch (err) {
+        alert("No se pudieron añadir los integrantes: " + err.message);
+    }
+};
 inicializarApp();
