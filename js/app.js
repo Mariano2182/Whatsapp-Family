@@ -713,13 +713,24 @@ document.addEventListener("keydown", function(e) {
     }
 });
 
-// ⚡ INICIALIZACIÓN INMUNE A ERRORES (Pide permisos de notificación flotante)
+// ⚡ INICIALIZACIÓN CORREGIDA (Registra el Service Worker y pide permisos)
 async function inicializarApp() {
     try { await verificarYCrearUsuarioDefecto(); } catch (err) {}
     
-    // Solicitud de permisos flotantes nativos
+    // 1️⃣ REGISTRAR EL SERVICE WORKER (¡Esto era lo que faltaba para activar las alertas!)
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('Service Worker registrado con éxito en el ámbito:', reg.scope))
+            .catch(err => console.error('Fallo al registrar Service Worker:', err));
+    }
+    
+    // 2️⃣ Solicitud de permisos flotantes nativos al usuario
     if ('Notification' in window && Notification.permission === 'default') {
-        Notification.requestPermission();
+        Notification.requestPermission().then(permiso => {
+            if (permiso === 'granted') {
+                alert("¡Excelente! Permiso de notificaciones concedido.");
+            }
+        });
     }
     
     try {
