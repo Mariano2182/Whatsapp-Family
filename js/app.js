@@ -195,8 +195,17 @@ function escucharListaDeChats() {
 
 async function abrirSalaChat(chatId, nombreChat, subetiqueta) {
     activeChatId = chatId;
+    
+// Dentro de abrirSalaChat, abajo de: activeChatId = chatId;
+const btnAgregar = document.getElementById("btn-agregar-integrante");
+if (btnAgregar) {
+    if (subetiqueta.includes("Grupo") && (currentUser.rol === "admin" || currentUser.rol === "superadmin")) {
+        btnAgregar.classList.remove("hidden");
+    } else {
+        btnAgregar.classList.add("hidden");
+    }
+}
     cancelarRespuesta();
-
     const elLista = document.getElementById("chats-list-view");
     const elSala = document.getElementById("chat-room-view");
     if (elLista) elLista.classList.add("hidden");
