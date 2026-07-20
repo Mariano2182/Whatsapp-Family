@@ -10,8 +10,44 @@ let unsubscribeChatsList = null;
 let unsubscribeChatMessages = null;
 let unsubscribeUsuariosAdmin = null; 
 
+let listaIniciada = false; // Controla que no suenen los mensajes viejos al cargar la app
 let replyTarget = null; 
 const IMGBB_API_KEY = "4a52316c7553d2229d68717ee77998fa";
+
+// 🔊 FUNCIÓN SINTETIZADORA DE SONIDO (Estilo Notificación Móvil)
+function reproducirSonidoNotificacion() {
+    try {
+        const context = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Primer tono corto
+        const osc1 = context.createOscillator();
+        const gain1 = context.createGain();
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(587.33, context.currentTime); // Nota Re5
+        gain1.gain.setValueAtTime(0.06, context.currentTime);
+        gain1.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.08);
+        osc1.connect(gain1);
+        gain1.connect(context.destination);
+        osc1.start();
+        osc1.stop(context.currentTime + 0.08);
+        
+        // Segundo tono un poco más agudo (70 milisegundos después)
+        setTimeout(() => {
+            const osc2 = context.createOscillator();
+            const gain2 = context.createGain();
+            osc2.type = 'sine';
+            osc2.frequency.setValueAtTime(880, context.currentTime); // Nota La5
+            gain2.gain.setValueAtTime(0.06, context.currentTime);
+            gain2.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.12);
+            osc2.connect(gain2);
+            gain2.connect(context.destination);
+            osc2.start();
+            osc2.stop(context.currentTime + 0.12);
+        }, 70);
+    } catch (e) {
+        console.log("El navegador bloqueó el audio temporalmente hasta una interacción del usuario.");
+    }
+}
 
 function mostrarPantallaSegunRol(user) {
     document.getElementById("login-container").classList.add("hidden");
@@ -21,7 +57,6 @@ function mostrarPantallaSegunRol(user) {
 
     document.getElementById("chats-user-info").innerText = `${user.usuario} (${user.rol})`;
 
-    // Solo Gri (admin) y Marian (superadmin) crean grupos
     const btnCrearGrupo = document.getElementById("btn-crear-grupo-view");
     if (user.rol === "superadmin" || user.rol === "admin") {
         btnCrearGrupo.classList.remove("hidden");
@@ -29,7 +64,6 @@ function mostrarPantallaSegunRol(user) {
         btnCrearGrupo.classList.add("hidden");
     }
 
-    // Solo superadmin ve la tuerca de administración general
     const adminBtn = document.getElementById("admin-btn");
     if (user.rol === "superadmin") {
         adminBtn.classList.remove("hidden");
@@ -40,9 +74,10 @@ function mostrarPantallaSegunRol(user) {
     escucharListaDeChats();
 }
 
-// Carga la lista principal estilo WhatsApp (Grupos y Chats Privados ordenados por actividad reciente)
+// Carga la lista principal y detecta en tiempo real las novedades para hacerlas sonar
 function escucharListaDeChats() {
     if (unsubscribeChatsList) unsubscribeChatsList();
+    listaIniciada = false; // Reseteamos al armar la lista
 
     const q = query(collection(db, "chats"), where("participantes", "array-contains", currentUser.usuario));
 
@@ -52,7 +87,6 @@ function escucharListaDeChats() {
             chatsArr.push({ id: docSnap.id, ...docSnap.data() });
         });
 
-        // Ordenamos localmente por fecha del último mensaje para evitar requerir índices compuestos en Firebase
         chatsArr.sort((a, b) => {
             const tiempoA = a.ultimaFecha?.toDate ? a.ultimaFecha.toDate().getTime() : 0;
             const tiempoB = b.ultimaFecha?.toDate ? b.ultimaFecha.toDate().getTime() : 0;
@@ -64,6 +98,7 @@ function escucharListaDeChats() {
 
         if (chatsArr.length === 0) {
             listaBox.innerHTML = `<div style="text-align:center; color:#667781; margin-top:30px; font-size:0.9rem; padding: 20px;">No tienes chats activos.<br>¡Crea un grupo o inicia un chat individual arriba!</div>`;
+            listaIniciada = true;
             return;
         }
 
@@ -92,10 +127,23 @@ function escucharListaDeChats() {
             `;
             listaBox.appendChild(divRow);
         });
+
+        // 🔔 DETECTOR DE NUEVOS MENSAJES RECIBIDOS EN TIEMPO REAL
+        if (listaIniciada) {
+            snapshot.docChanges().forEach(change => {
+                if (change.type === "modified" || change.type === "added") {
+                    const chatData = change.doc.data();
+                    // Suena si el cambio viene de otra persona
+                    if (chatData.ultimoRemitente && chatData.ultimoRemitente !== currentUser.usuario) {
+                        reproducirSonidoNotificacion();
+                    }
+                }
+            });
+        }
+        listaIniciada = true;
     });
 }
 
-// Abre la conversación elegida y carga sus mensajes específicos
 function abrirSalaChat(chatId, nombreChat, subetiqueta) {
     activeChatId = chatId;
     cancelarRespuesta();
@@ -187,7 +235,6 @@ window.volverAListaChats = function() {
     escucharListaDeChats();
 };
 
-// --- MODAL CREAR GRUPO ---
 window.abrirModalGrupo = async function() {
     const listContainer = document.getElementById("group-users-list");
     listContainer.innerHTML = "<p style='padding:10px;'>Cargando red familiar...</p>";
@@ -231,7 +278,8 @@ window.crearGrupoConfirmar = async function() {
             nombre: nameInput,
             participantes: participantes,
             creador: currentUser.usuario,
-            ultimaFecha: serverTimestamp()
+            ultimaFecha: serverTimestamp(),
+            ultimoRemitente: currentUser.usuario
         };
 
         const docRef = await addDoc(collection(db, "chats"), nuevoGrupo);
@@ -242,7 +290,6 @@ window.crearGrupoConfirmar = async function() {
     }
 };
 
-// --- MODAL CHAT INDIVIDUAL (DM) ---
 window.abrirModalDM = async function() {
     const listContainer = document.getElementById("dm-users-list");
     listContainer.innerHTML = "<p style='padding:10px;'>Cargando familiares...</p>";
@@ -293,7 +340,8 @@ async function iniciarChatIndividual(otroUsuario) {
                 tipo: "individual",
                 nombre: "",
                 participantes: [currentUser.usuario, otroUsuario],
-                ultimaFecha: serverTimestamp()
+                ultimaFecha: serverTimestamp(),
+                ultimoRemitente: currentUser.usuario
             };
             const docRef = await addDoc(collection(db, "chats"), nuevoChatPrivado);
             abrirSalaChat(docRef.id, otroUsuario, "Chat privado");
@@ -303,7 +351,6 @@ async function iniciarChatIndividual(otroUsuario) {
     }
 }
 
-// --- ENVÍO DE MENSAJES Y FOTOS ---
 window.enviarMensaje = async function() {
     const input = document.getElementById("msg-input");
     const texto = input.value.trim();
@@ -322,7 +369,11 @@ window.enviarMensaje = async function() {
         cancelarRespuesta();
 
         await addDoc(collection(db, "chats", activeChatId, "mensajes"), nuevoMensaje);
-        await updateDoc(doc(db, "chats", activeChatId), { ultimaFecha: serverTimestamp() });
+        // Marcamos la última actividad y quién lo envió para controlar los sonidos
+        await updateDoc(doc(db, "chats", activeChatId), { 
+            ultimaFecha: serverTimestamp(),
+            ultimoRemitente: currentUser.usuario 
+        });
     } catch (e) {
         console.error("Error enviando texto:", e);
     }
@@ -368,7 +419,11 @@ window.subirFoto = async function(elementoInput) {
 
             cancelarRespuesta();
             await addDoc(collection(db, "chats", activeChatId, "mensajes"), nuevoMensaje);
-            await updateDoc(doc(db, "chats", activeChatId), { ultimaFecha: serverTimestamp() });
+            // Marcamos la última actividad y quién lo envió para controlar los sonidos
+            await updateDoc(doc(db, "chats", activeChatId), { 
+                ultimaFecha: serverTimestamp(),
+                ultimoRemitente: currentUser.usuario 
+            });
         } else {
             throw new Error();
         }
@@ -403,7 +458,6 @@ window.cancelarRespuesta = function() {
     document.getElementById("reply-preview-box").classList.add("hidden");
 };
 
-// --- GESTIÓN DE ADMINISTRACIÓN (SUPERADMIN) ---
 function escucharUsuariosAdmin() {
     if (unsubscribeUsuariosAdmin) unsubscribeUsuariosAdmin();
     const listaBox = document.getElementById("lista-usuarios");
@@ -433,7 +487,6 @@ function escucharUsuariosAdmin() {
     });
 }
 
-// 🆕 NUEVA FUNCIÓN: Ejecuta el registro en Firebase y limpia los campos del panel
 window.crearNuevoUsuarioAdmin = async function() {
     const usuario = document.getElementById("reg-usuario").value.trim();
     const password = document.getElementById("reg-password").value.trim();
@@ -453,7 +506,6 @@ window.crearNuevoUsuarioAdmin = async function() {
         adminRegMsg.style.color = "green";
         adminRegMsg.innerText = `¡Familiar '${usuario}' registrado con éxito como ${rol}!`;
         
-        // Limpiamos campos
         document.getElementById("reg-usuario").value = "";
         document.getElementById("reg-password").value = "";
     } catch (e) {
@@ -508,7 +560,6 @@ window.volverAlAppDesdeAdmin = function() {
     document.getElementById("chats-list-view").classList.remove("hidden");
 };
 
-// --- LOGIN & INICIALIZACIÓN ---
 window.login = async function(){
     const usuario = document.getElementById("usuario").value;
     const password = document.getElementById("password").value;
