@@ -95,7 +95,16 @@
         }
         .app-header .title-area { display: flex; flex-direction: column; }
         .app-header .main-title { font-weight: bold; font-size: 1.2rem; }
-        .app-header .sub-title { font-size: 0.75rem; color: #c1ece3; margin-top: 2px; }
+        .app-header .sub-title { 
+    font-size: 0.75rem; 
+    color: #c1ece3; 
+    margin-top: 2px; 
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 320px; /* Evita que el texto largo empuje otros elementos */
+}
         .app-header button { background: transparent; border: none; color: white; padding: 6px 12px; border-radius: 20px; cursor: pointer; font-size: 0.85rem; font-weight: 600; }
         .header-actions { display: flex; gap: 6px; }
         .admin-btn-style { background: rgba(255, 255, 255, 0.2) !important; }
