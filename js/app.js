@@ -219,6 +219,16 @@ async function abrirSalaChat(chatId, nombreChat, subetiqueta) {
         snapshot.forEach((docSnap) => {
             const datos = docSnap.data();
             const idDoc = docSnap.id;
+            const docRef = docSnap.ref; // Referencia directa al documento para la actualización
+
+            // 👁️ NUEVO (DOBLE TILDE): Si el mensaje lo envió OTRA persona y está "sin leer", 
+            // significa que yo lo estoy abriendo en este instante. Lo marco como leído en Firebase.
+            if (datos.remitente !== currentUser.usuario && datos.leido === false) {
+                updateDoc(docRef, { leido: true }).catch(err => 
+                    console.error("Error al actualizar estado de lectura:", err)
+                );
+            }
+
             const divMensaje = document.createElement("div");
 
             if (datos.remitente === currentUser.usuario) {
@@ -266,11 +276,23 @@ async function abrirSalaChat(chatId, nombreChat, subetiqueta) {
                 contenidoMensaje = `<span style="display:block;">${datos.texto || ''}</span>`;
             }
 
+            // 👁️ NUEVO (DOBLE TILDE): Determinar qué tilde inyectar al lado de la hora (Sólo en mis mensajes)
+            let tildesHtml = "";
+            if (datos.remitente === currentUser.usuario) {
+                if (datos.leido === true) {
+                    // Doble tilde azul
+                    tildesHtml = `<span style="color: #53bdeb; margin-left: 5px; font-weight: bold; font-size: 0.9em;">✓✓</span>`;
+                } else {
+                    // Un tilde gris
+                    tildesHtml = `<span style="color: #8696a0; margin-left: 5px; font-size: 0.9em;">✓</span>`;
+                }
+            }
+
             divMensaje.innerHTML = `
                 <span class="msg-meta">${datos.remitente}</span> 
                 ${bloqueCita}
                 ${contenidoMensaje}
-                <span class="msg-time">${horaFormateada}</span>
+                <span class="msg-time">${horaFormateada}${tildesHtml}</span>
                 ${botonResponder}
                 ${deleteButton}
             `;
@@ -319,10 +341,12 @@ async function enviarMensaje() {
     if (!texto || !activeChatId) return;
 
     try {
+        // 👁️ NUEVO (DOBLE TILDE): Agregado el campo 'leido: false' por defecto
         const nuevoMensaje = {
             texto: texto,
             remitente: currentUser.usuario,
-            fecha: serverTimestamp()
+            fecha: serverTimestamp(),
+            leido: false
         };
 
         if (replyTarget) nuevoMensaje.replyTo = replyTarget;
@@ -524,11 +548,14 @@ window.subirFoto = async function(elementoInput) {
 
         if (resultado.success) {
             const URLPublica = resultado.data.url;
+            
+            // 👁️ NUEVO (DOBLE TILDE): Agregado 'leido: false' para que las fotos también tengan checkmarks
             const nuevoMensaje = {
                 texto: "",
                 imagenUrl: URLPublica,
                 remitente: currentUser.usuario,
-                fecha: serverTimestamp()
+                fecha: serverTimestamp(),
+                leido: false
             };
 
             if (replyTarget) nuevoMensaje.replyTo = replyTarget;
