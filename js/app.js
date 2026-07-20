@@ -148,12 +148,43 @@ function escucharListaDeChats() {
             });
         }
 
+        // 🚨 CONTROL DE ALERTAS, SONIDOS Y VIBRACIÓN DE NUEVOS MENSAJES
         if (listaIniciada) {
             snapshot.docChanges().forEach(change => {
                 if (change.type === "modified" || change.type === "added") {
+                    const chatId = change.doc.id;
                     const chatData = change.doc.data();
-                    if (chatData.ultimoRemitente && chatData.ultimoRemitente !== currentUser.usuario) {
+                    
+                    // Solo alerta si el mensaje lo mandó otro Y si NO estamos viendo ese chat actualmente
+                    if (chatData.ultimoRemitente && chatData.ultimoRemitente !== currentUser.usuario && activeChatId !== chatId) {
+                        
+                        // 🔊 Sonido
                         reproducirSonidoNotificacion();
+                        
+                        // 📳 Vibración en primer plano
+                        if ('vibrate' in navigator) {
+                            navigator.vibrate([100, 50, 100]);
+                        }
+                        
+                        // 💬 Alerta Flotante en Pantalla (Notificación de Sistema vía Service Worker)
+                        if ('Notification' in window && Notification.permission === 'granted') {
+                            let tituloAlerta = `Mensaje de ${chatData.ultimoRemitente}`;
+                            if (chatData.tipo === "grupo") {
+                                tituloAlerta = `${chatData.ultimoRemitente} en "${chatData.nombre}"`;
+                            }
+
+                            if ('serviceWorker' in navigator) {
+                                navigator.serviceWorker.ready.then((registration) => {
+                                    registration.showNotification(tituloAlerta, {
+                                        body: "¡Tienes mensajes nuevos sin leer!",
+                                        icon: "https://cdn-icons-png.flaticon.com/512/5968/5968771.png",
+                                        tag: chatId,
+                                        renovate: true,
+                                        vibrate: [100, 50, 100]
+                                    });
+                                });
+                            }
+                        }
                     }
                 }
             });
@@ -204,9 +235,9 @@ async function abrirSalaChat(chatId, nombreChat, subetiqueta) {
             const esMio = datos.remitente === currentUser.usuario;
             const esSuperAdmin = currentUser.rol === "superadmin";
 
-            let botonBorrar = "";
+            let deleteButton = "";
             if (esMio || esSuperAdmin) {
-                botonBorrar = `<span class="delete-btn" onclick="eliminarMensaje('${idDoc}')" title="Eliminar mensaje">🗑️</span>`;
+                deleteButton = `<span class="delete-btn" onclick="eliminarMensaje('${idDoc}')" title="Eliminar mensaje">🗑️</span>`;
             }
 
             let textoPreview = "📝 Mensaje";
@@ -241,7 +272,7 @@ async function abrirSalaChat(chatId, nombreChat, subetiqueta) {
                 ${contenidoMensaje}
                 <span class="msg-time">${horaFormateada}</span>
                 ${botonResponder}
-                ${botonBorrar}
+                ${deleteButton}
             `;
             chatBox.appendChild(divMensaje);
         });
@@ -250,7 +281,6 @@ async function abrirSalaChat(chatId, nombreChat, subetiqueta) {
     });
 }
 
-// 🔐 FUNCIÓN DE INGRESO TOTALMENTE PROTEGIDA
 async function login() {
     const elUser = document.getElementById("usuario");
     const elPass = document.getElementById("password");
@@ -259,7 +289,7 @@ async function login() {
     if (errorBox) errorBox.innerText = "";
 
     if (!elUser || !elPass) {
-        alert("Error de diseño: No se encontraron los campos de usuario o clave en el HTML.");
+        alert("Error de diseño: No se encontraron los campos en el HTML.");
         return;
     }
 
@@ -310,7 +340,7 @@ async function enviarMensaje() {
     }
 }
 
-// Vinculación segura e inmediata al objeto global window
+// Vinculación global de funciones
 window.login = login;
 window.enviarMensaje = enviarMensaje;
 
@@ -668,7 +698,7 @@ window.volverAlAppDesdeAdmin = function() {
     if (elLista) elLista.classList.remove("hidden");
 };
 
-// ⌨️ ATAJOS DE TECLADO MEJORADOS
+// ⌨️ ATAJOS DE TECLADO
 document.addEventListener("keydown", function(e) {
     if (e.key === "Enter") {
         const msgIn = document.getElementById("msg-input");
@@ -683,9 +713,14 @@ document.addEventListener("keydown", function(e) {
     }
 });
 
-// ⚡ INICIALIZACIÓN INMUNE A ERRORES
+// ⚡ INICIALIZACIÓN INMUNE A ERRORES (Pide permisos de notificación flotante)
 async function inicializarApp() {
     try { await verificarYCrearUsuarioDefecto(); } catch (err) {}
+    
+    // Solicitud de permisos flotantes nativos
+    if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+    }
     
     try {
         const saved = localStorage.getItem("user");
