@@ -1,5 +1,4 @@
-import { db } from "./firebase.js";
-import { collection, query, where, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
 
 export async function sha256(text) {
     const msgBuffer = new TextEncoder().encode(text);
