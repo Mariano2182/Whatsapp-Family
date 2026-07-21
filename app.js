@@ -1,4 +1,6 @@
-i
+import { db } from "./firebase.js";
+import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, deleteDoc, where, getDocs, updateDoc, deleteField, arrayUnion } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+import { loginUser, verificarYCrearUsuarioDefecto, registrarNuevoUsuario, actualizarNombreUsuario, eliminarUsuario, cambiarPasswordUsuario } from "./auth.js";
 
 // 🚨 DETECTOR DE ERRORES EN PANTALLA (Ideal para ver fallas desde el celular)
 window.addEventListener('error', function(e) {
