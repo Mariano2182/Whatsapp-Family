@@ -2,85 +2,151 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Chat Familiar</title>
-    <link rel="manifest" href="manifest.json"> <!-- Opcional si tienes tu manifest -->
-    <style>
-        :root {
-            --bg-body: #d1d7db;
-            --bg-chat: #efeae2;
-            --primary-color: #00a884;
-            --msg-sent: #d9fdd3;
-            --msg-received: #ffffff;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
-        body { background-color: var(--bg-body); height: 100vh; display: flex; justify-content: center; align-items: center; }
-        .app-container { width: 100%; max-width: 600px; height: 100vh; background-color: var(--bg-chat); display: flex; flex-direction: column; position: relative; }
-        
-        /* Pantalla de Login */
-        #login-screen { position: absolute; top:0; left:0; width: 100%; height: 100%; background: #f0f2f5; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; }
-        .login-box { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 90%; max-width: 350px; text-align: center; }
-        .login-box input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 5px; font-size: 16px; }
-        .login-box button { width: 100%; padding: 12px; background: var(--primary-color); color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; font-weight: bold; }
-        .error-msg { color: red; font-size: 14px; margin-bottom: 10px; min-height: 20px; }
-
-        /* Pantalla de Chat */
-        #chat-screen { display: none; flex-direction: column; height: 100%; }
-        .chat-header { background: #f0f2f5; padding: 15px; font-weight: bold; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; }
-        .messages-container { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; }
-        .message { max-width: 75%; padding: 8px 12px; margin-bottom: 10px; border-radius: 8px; font-size: 0.95rem; line-height: 1.4; }
-        .message-received { background-color: var(--msg-received); align-self: flex-start; border-top-left-radius: 0; }
-        .message-sent { background-color: var(--msg-sent); align-self: flex-end; border-top-right-radius: 0; }
-        .message-sender { font-size: 0.75rem; font-weight: bold; color: #075e54; margin-bottom: 3px; display: block; }
-        .input-area { height: 60px; background-color: #f0f2f5; display: flex; align-items: center; padding: 10px; }
-        .input-area input { flex: 1; height: 40px; border-radius: 20px; border: none; padding: 0 15px; margin-right: 10px; outline: none; font-size: 16px; }
-        .input-area button { background-color: var(--primary-color); color: white; border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 18px; }
-    </style>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json"> <!-- Opcional para PWA -->
 </head>
 <body>
 
-    <div class="app-container">
-        <!-- PANTALLA LOGIN -->
-        <div id="login-screen">
-            <div class="login-box">
-                <h2 style="color: #00a884; margin-bottom: 10px;">Chat Familiar</h2>
-                <p style="margin-bottom: 20px; font-size: 14px; color: #666;">Ingresa tu cuenta para platicar</p>
-                <div id="error-msg" class="error-msg"></div>
-                <input type="text" id="username" placeholder="Usuario (ej. marian)">
-                <input type="password" id="password" placeholder="Contraseña">
-                <button id="btn-login">Ingresar</button>
+    <!-- 📱 PANTALLA DE LOGIN -->
+    <div id="login-container" class="screen">
+        <div class="login-box">
+            <h2>Chat Familiar</h2>
+            <p>Ingresa tu cuenta para platicar</p>
+            <div id="login-error" style="color: red; margin-bottom: 10px; font-size: 0.9em; text-align: center;"></div>
+            <input type="text" id="usuario" placeholder="Usuario">
+            <input type="password" id="password" placeholder="Contraseña">
+            <button onclick="login()">Ingresar</button>
+        </div>
+    </div>
+
+    <!-- 📱 PANTALLA: LISTA DE CHATS -->
+    <div id="chats-list-view" class="screen hidden">
+        <header class="app-header">
+            <div class="header-info">
+                <h3>Tus Chats</h3>
+                <span id="chats-user-info" class="user-badge"></span>
             </div>
+            <div class="header-actions">
+                <button id="admin-btn" class="icon-btn hidden" onclick="abrirPanelAdmin()" title="Panel de Control">⚙️</button>
+                <button class="icon-btn" onclick="abrirModalDM()" title="Nuevo Chat">👤+</button>
+                <button id="btn-crear-grupo-view" class="icon-btn hidden" onclick="abrirModalGrupo()" title="Nuevo Grupo">👥+</button>
+                <button class="icon-btn logout-btn" onclick="logout()" title="Cerrar Sesión">🚪</button>
+            </div>
+        </header>
+        <div id="lista-chats-items" class="scrollable-content">
+            <!-- Los chats se cargarán aquí -->
+        </div>
+    </div>
+
+    <!-- 📱 PANTALLA: SALA DE CHAT -->
+    <div id="chat-room-view" class="screen hidden chat-layout">
+        <header class="app-header">
+            <button class="icon-btn" onclick="volverAListaChats()">⬅️</button>
+            <div class="header-chat-info">
+                <h3 id="active-chat-title">Cargando...</h3>
+                <span id="active-chat-status"></span>
+            </div>
+            <button id="btn-agregar-integrante" class="icon-btn hidden" onclick="abrirModalAgregarIntegrante()">➕👥</button>
+        </header>
+
+        <div id="chat-box" class="chat-messages scrollable-content">
+            <!-- Mensajes -->
         </div>
 
-        <!-- PANTALLA CHAT -->
-        <div id="chat-screen">
-            <div class="chat-header">
-                <span>Chat Familiar</span>
-                <span id="user-display" style="color: #00a884;"></span>
+        <div id="reply-preview-box" class="reply-preview hidden">
+            <div class="reply-content">
+                <span id="reply-preview-user"></span>
+                <p id="reply-preview-text"></p>
             </div>
-            <div class="messages-container" id="chat-box"></div>
-            <div class="input-area">
-                <input type="text" id="msg-input" placeholder="Escribe un mensaje...">
-                <button id="btn-send">➤</button>
+            <button class="icon-btn" onclick="cancelarRespuesta()">❌</button>
+        </div>
+
+        <footer class="chat-input-area">
+            <input type="file" id="gallery-input" accept="image/*" class="hidden" onchange="subirFoto(this)">
+            <input type="file" id="camera-input" accept="image/*" capture="environment" class="hidden" onchange="subirFoto(this)">
+            
+            <button class="attach-btn" onclick="abrirGaleria()">📎</button>
+            <button class="attach-btn" onclick="abrirCamara()">📷</button>
+            
+            <input type="text" id="msg-input" placeholder="Escribe un mensaje..." autocomplete="off">
+            <button class="send-btn" onclick="enviarMensaje()">➤</button>
+        </footer>
+    </div>
+
+    <!-- 📱 PANTALLA: PANEL DE ADMINISTRADOR -->
+    <div id="admin-panel" class="screen hidden">
+        <header class="app-header">
+            <button class="icon-btn" onclick="volverAlAppDesdeAdmin()">⬅️ Volver</button>
+            <h3>Panel de Control</h3>
+        </header>
+        <div class="scrollable-content admin-content">
+            <div class="admin-card">
+                <h4>Registrar Nuevo Familiar</h4>
+                <div id="admin-reg-msg"></div>
+                <input type="text" id="reg-usuario" placeholder="Nombre (ej. tia_marta)">
+                <input type="text" id="reg-password" placeholder="Contraseña temporal">
+                <select id="reg-rol">
+                    <option value="user">Familiar (user)</option>
+                    <option value="admin">Administrador (admin)</option>
+                </select>
+                <button onclick="crearNuevoUsuarioAdmin()">Registrar</button>
+            </div>
+
+            <div class="admin-card">
+                <h4>Cambiar Nombre de Usuario</h4>
+                <div id="admin-msg"></div>
+                <input type="text" id="edit-usuario-actual" placeholder="Nombre actual (ej. papa)">
+                <input type="text" id="edit-usuario-nuevo" placeholder="Nuevo nombre (ej. papa_carlos)">
+                <button onclick="cambiarNombreFamiliar()">Actualizar Nombre</button>
+            </div>
+
+            <div class="admin-card">
+                <h4>Familiares Registrados</h4>
+                <div id="lista-usuarios" class="admin-user-list"></div>
             </div>
         </div>
     </div>
 
-    <!-- Limpieza de Service Worker y Carga de App -->
-    <script>
-        // Eliminamos SW viejos problemáticos e instalamos el nuevo y limpio
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(regs => {
-                for (let reg of regs) {
-                    // Si el SW no es el nuestro, lo borramos (ideal para limpiar OneSignal)
-                    if(!reg.active || !reg.active.scriptURL.includes('sw.js')) {
-                        reg.unregister();
-                    }
-                }
-            });
-            navigator.serviceWorker.register('./sw.js?v=4').then(() => console.log("SW Registrado")).catch(e => console.error(e));
-        }
-    </script>
-    <script type="module" src="./app.js"></script>
+    <!-- 🪟 MODALES FLOTANTES -->
+    <!-- Modal: Crear Grupo -->
+    <div id="modal-grupo" class="modal hidden">
+        <div class="modal-content">
+            <h3>Nuevo Grupo Familiar</h3>
+            <input type="text" id="group-name-input" placeholder="Nombre del grupo">
+            <div id="group-users-list" class="checklist-container"></div>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="cerrarModalGrupo()">Cancelar</button>
+                <button onclick="crearGrupoConfirmar()">Crear</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Nuevo Chat Directo -->
+    <div id="modal-dm" class="modal hidden">
+        <div class="modal-content">
+            <h3>Iniciar Chat Privado</h3>
+            <div id="dm-users-list" class="checklist-container"></div>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="cerrarModalDM()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Agregar Integrante -->
+    <div id="modal-agregar-integrante" class="modal hidden">
+        <div class="modal-content">
+            <h3>Agregar al grupo</h3>
+            <div id="lista-usuarios-agregar" class="checklist-container"></div>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="cerrarModalAgregarIntegrante()">Cancelar</button>
+                <button onclick="ejecutarAgregarIntegrantes()">Agregar Seleccionados</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ⚙️ SCRIPTS -->
+    <script type="module" src="app.js"></script>
 </body>
 </html>
