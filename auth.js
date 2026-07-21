@@ -30,7 +30,10 @@ export async function loginUser(usuario, password) {
 
 // Creación del usuario Admin por defecto
 export async function verificarYCrearUsuarioDefecto() {
-    const querySnapshot = await getDocs(collection(db, "usuarios"));
+    // Ahora busca específicamente si "marian" falta, sin importar si hay otros
+    const q = query(collection(db, "usuarios"), where("usuario", "==", "marian"));
+    const querySnapshot = await getDocs(q);
+    
     if (querySnapshot.empty) {
         const hashContrasena = await sha256("marian123");
         await addDoc(collection(db, "usuarios"), {
