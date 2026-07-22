@@ -528,13 +528,15 @@ window.cerrarModalDM = function() {
 async function iniciarChatIndividual(otroUsuario) {
     cerrarModalDM();
     try {
-        const q = query(collection(db, "chats"), where("tipo", "==", "individual"), where("participantes", "array-contains", currentUser.usuario));
+        // Le pedimos a Firebase solo 1 condición para evitar el error del índice
+        const q = query(collection(db, "chats"), where("participantes", "array-contains", currentUser.usuario));
         const snapshot = await getDocs(q);
         let chatExistenteId = null;
 
+        // Hacemos el segundo filtro (el tipo) manualmente nosotros
         snapshot.forEach(docSnap => {
             const data = docSnap.data();
-            if (data.participantes.includes(otroUsuario)) {
+            if (data.tipo === "individual" && data.participantes.includes(otroUsuario)) {
                 chatExistenteId = docSnap.id;
             }
         });
@@ -553,7 +555,8 @@ async function iniciarChatIndividual(otroUsuario) {
             abrirSalaChat(docRef.id, otroUsuario, "Chat privado");
         }
     } catch(e) {
-        console.error(e);
+        console.error("Error al iniciar chat:", e);
+        alert("Hubo un error al crear la sala: " + e.message);
     }
 }
 
