@@ -384,10 +384,15 @@ async function enviarMensaje() {
     const input = document.getElementById("msg-input");
     if (!input) return;
     const texto = input.value.trim();
-    if (!texto || !activeChatId) return;
+    
+    // Alerta de seguridad si la sala es "fantasma"
+    if (!activeChatId) {
+        alert("⚠️ Error del sistema: El chat no se cargó correctamente. Vuelve a la lista e ingresa de nuevo.");
+        return;
+    }
+    if (!texto) return;
 
     try {
-        // 👁️ NUEVO (DOBLE TILDE): Agregado el campo 'leido: false' por defecto
         const nuevoMensaje = {
             texto: texto,
             remitente: currentUser.usuario,
@@ -405,8 +410,11 @@ async function enviarMensaje() {
             ultimaFecha: serverTimestamp(),
             ultimoRemitente: currentUser.usuario 
         });
+        
+        console.log("✔️ Mensaje guardado en la base de datos.");
     } catch (e) {
-        console.error("Error sending message:", e);
+        console.error("Error enviando mensaje:", e);
+        alert("❌ Firebase bloqueó el mensaje. Motivo: " + e.message);
     }
 }
 
