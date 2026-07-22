@@ -59,7 +59,40 @@ function reproducirSonidoNotificacion() {
         console.log("Audio retenido por el navegador.");
     }
 }
+// 📳 REGISTRO DE TOKEN PUSH PARA ALERTAS CON APP CERRADA
+async function registrarTokenNotificaciones(usuarioActual) {
+    try {
+        if (!('Notification' in window)) return;
 
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+            console.log("Permiso de notificaciones denegado.");
+            return;
+        }
+
+        const messaging = getMessaging();
+        
+        // Obtenemos el token único de este dispositivo
+        const currentToken = await getToken(messaging, { 
+            vapidKey: "BALu-Lw09JhiDXBrpvGBPei4gM1YX4QKatJBxVt2zYSgtn2l_LHmPGEA_iGf6Y1LTxOGyJV9sE3G-6EMfualKn0" // 👈 Pega tu VAPID Key aquí
+        });
+
+        if (currentToken) {
+            console.log("Token Push obtenido con éxito.");
+            // Guardamos el token en la base de datos dentro del perfil del usuario
+            const q = query(collection(db, "usuarios"), where("usuario", "==", usuarioActual.toLowerCase()));
+            const snap = await getDocs(q);
+            
+            snap.forEach(async (docSnap) => {
+                await updateDoc(docSnap.ref, { tokenFCM: currentToken });
+            });
+        } else {
+            console.log("No se pudo generar el token FCM.");
+        }
+    } catch (err) {
+        console.error("Error al registrar token de notificaciones:", err);
+    }
+}
 // Cambios de pantalla seguros (No se rompen si falta algún ID en tu HTML)
 function mostrarPantallaSegunRol(user) {
     const alternarOculto = (id, agregar) => {
