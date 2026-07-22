@@ -3,12 +3,12 @@ importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-comp
 
 // ⚙️ PEGA AQUÍ TU CONFIGURACIÓN DE FIREBASE (La misma que usas en firebase.js)
 firebase.initializeApp({
-    apiKey: "TU_API_KEY",
-    authDomain: "tu-app.firebaseapp.com",
+    apiKey: "AIzaSyALKug8P2-KqgL8xfKj16So4MgRysmGVV4",
+    authDomain: "chat-familiar-app.firebaseapp.com",
     projectId: "chat-familiar-app",
-    storageBucket: "tu-app.appspot.com",
-    messagingSenderId: "NUMERO_SENDER_ID",
-    appId: "TU_APP_ID"
+    storageBucket: "chat-familiar-app.firebasestorage.app",
+    messagingSenderId: "638014957754",
+    appId: "1:638014957754:web:c3437cf4310050bfbb7a83"
 });
 
 const messaging = firebase.messaging();
