@@ -414,7 +414,47 @@ async function login() {
         else alert("Error al ingresar: " + e.message);
     }
 }
+// 🚀 DISPARADOR DE NOTIFICACIÓN PUSH VÍA PIPEDREAM
+async function notificarDestinatariosPush(chatId, textoMensaje) {
+    try {
+        // 1. Obtener los participantes de la sala
+        const chatSnap = await getDocs(query(collection(db, "chats")));
+        let participantes = [];
+        chatSnap.forEach(d => {
+            if (d.id === chatId) participantes = d.data().participantes || [];
+        });
 
+        // 2. Excluir al remitente
+        const destinatarios = participantes.filter(u => String(u).toLowerCase() !== currentUser.usuario.toLowerCase());
+        if (destinatarios.length === 0) return;
+
+        // 3. Buscar tokens FCM guardados de esos participantes
+        const tokens = [];
+        const usersSnap = await getDocs(collection(db, "usuarios"));
+        usersSnap.forEach(docSnap => {
+            const uData = docSnap.data();
+            if (uData.usuario && destinatarios.includes(String(uData.usuario).toLowerCase()) && uData.tokenFCM) {
+                tokens.push(uData.tokenFCM);
+            }
+        });
+
+        if (tokens.length === 0) return;
+
+        // 4. Enviar petición al Webhook de Pipedream
+        await fetch("https://eo8zvkqyn6sm7kx.m.pipedream.net", { // 👈 Reemplaza esto por tu URL de Pipedream
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                title: `Mensaje de ${currentUser.usuario}`,
+                body: textoMensaje || "📷 Te envió una imagen",
+                chatId: chatId,
+                tokens: tokens
+            })
+        });
+    } catch (e) {
+        console.error("Error al disparar la alerta Push:", e);
+    }
+}
 async function enviarMensaje() {
     const input = document.getElementById("msg-input");
     if (!input) return;
