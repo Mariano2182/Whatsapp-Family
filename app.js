@@ -406,6 +406,7 @@ async function login() {
     try {
         const user = await loginUser(usuario, password);
         currentUser = user;
+        registrarTokenNotificaciones(currentUser.usuario);
         localStorage.setItem("user", JSON.stringify(user));
         mostrarPantallaSegunRol(user);
     } catch(e) {
