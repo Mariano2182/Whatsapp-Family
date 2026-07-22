@@ -934,4 +934,95 @@ window.ejecutarAgregarIntegrantes = async function() {
         alert("No se pudieron añadir los integrantes: " + err.message);
     }
 };
+// 🧹 FUNCIÓN DE MIGRACIÓN Y LIMPIEZA DE BASE DE DATOS
+window.migrarYLimpiarBaseDeDatos = async function() {
+    if (!confirm("¿Deseas corregir los nombres con mayúsculas y fusionar los chats duplicados?")) return;
+
+    console.log("🚀 Iniciando migración de base de datos...");
+    alert("Iniciando proceso. Por favor espera a que aparezca el mensaje de éxito...");
+
+    try {
+        // 1. Unificar usuarios a minúsculas
+        const usersSnap = await getDocs(collection(db, "usuarios"));
+        const usuariosExistentes = new Set();
+        
+        for (const userDoc of usersSnap.docs) {
+            const data = userDoc.data();
+            const original = data.usuario || "";
+            const minuscula = original.toLowerCase();
+            
+            if (original !== minuscula) {
+                if (usuariosExistentes.has(minuscula)) {
+                    await deleteDoc(userDoc.ref);
+                } else {
+                    await updateDoc(userDoc.ref, { usuario: minuscula });
+                    usuariosExistentes.add(minuscula);
+                }
+            } else {
+                usuariosExistentes.add(minuscula);
+            }
+        }
+
+        // 2. Limpiar chats y fusionar duplicados
+        const chatsSnap = await getDocs(collection(db, "chats"));
+        const chatsIndividualesMap = new Map();
+
+        for (const chatDoc of chatsSnap.docs) {
+            const chatData = chatDoc.data();
+            const chatId = chatDoc.id;
+            
+            const participantesLimpio = (chatData.participantes || []).map(p => String(p).toLowerCase());
+            const ultimoRemitenteLimpio = chatData.ultimoRemitente ? String(chatData.ultimoRemitente).toLowerCase() : "";
+            
+            // Actualizar datos del chat a minúsculas
+            await updateDoc(doc(db, "chats", chatId), {
+                participantes: participantesLimpio,
+                ultimoRemitente: ultimoRemitenteLimpio
+            });
+
+            // Corregir remitentes en cada mensaje dentro de este chat
+            const mensajesSnap = await getDocs(collection(db, "chats", chatId, "mensajes"));
+            for (const msgDoc of mensajesSnap.docs) {
+                const msgData = msgDoc.data();
+                const updateFields = {};
+                
+                if (msgData.remitente && msgData.remitente !== msgData.remitente.toLowerCase()) {
+                    updateFields.remitente = msgData.remitente.toLowerCase();
+                }
+                if (msgData.replyTo && msgData.replyTo.remitente && msgData.replyTo.remitente !== msgData.replyTo.remitente.toLowerCase()) {
+                    updateFields["replyTo.remitente"] = msgData.replyTo.remitente.toLowerCase();
+                }
+
+                if (Object.keys(updateFields).length > 0) {
+                    await updateDoc(msgDoc.ref, updateFields);
+                }
+            }
+
+            // 3. Fusionar chats privados duplicados
+            if (chatData.tipo === "individual") {
+                const claveUnica = participantesLimpio.sort().join("_");
+                
+                if (chatsIndividualesMap.has(claveUnica)) {
+                    const chatPrincipalId = chatsIndividualesMap.get(claveUnica);
+                    
+                    // Copiar mensajes del chat duplicado al chat principal
+                    for (const msgDoc of mensajesSnap.docs) {
+                        await addDoc(collection(db, "chats", chatPrincipalId, "mensajes"), msgDoc.data());
+                        await deleteDoc(msgDoc.ref);
+                    }
+                    // Eliminar la sala duplicada
+                    await deleteDoc(chatDoc.ref);
+                } else {
+                    chatsIndividualesMap.set(claveUnica, chatId);
+                }
+            }
+        }
+
+        alert("🎉 ¡Limpieza completada! Se corrigieron las mayúsculas y se fusionaron los chats duplicados sin perder ningún mensaje.");
+        location.reload();
+    } catch (e) {
+        console.error("Error durante la migración:", e);
+        alert("Hubo un error durante el proceso: " + e.message);
+    }
+};
 inicializarApp();
