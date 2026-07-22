@@ -441,6 +441,7 @@ async function enviarMensaje() {
         cancelarRespuesta();
 
         await addDoc(collection(db, "chats", activeChatId, "mensajes"), nuevoMensaje);
+        notificarDestinatariosPush(activeChatId, texto);
         await updateDoc(doc(db, "chats", activeChatId), { 
             ultimaFecha: serverTimestamp(),
             ultimoRemitente: currentUser.usuario 
