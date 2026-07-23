@@ -1,5 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+import { getMessaging } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging.js"; // 👈 1. Importar getMessaging
 
 const firebaseConfig = {
     apiKey: "AIzaSyALKug8P2-KqgL8xfKj16So4MgRysmGVV4",
@@ -10,5 +11,7 @@ const firebaseConfig = {
     appId: "1:638014957754:web:c3437cf4310050bfbb7a83"
 };
 
-export const app = initializeApp(firebaseConfig);
+const app = initializeApp(firebaseConfig);
+
 export const db = getFirestore(app);
+export const messaging = getMessaging(app); // 👈 2. Exportar la constante messaging
