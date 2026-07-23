@@ -59,38 +59,50 @@ function reproducirSonidoNotificacion() {
         console.log("Audio retenido por el navegador.");
     }
 }
-// 📳 REGISTRO DE TOKEN PUSH PARA ALERTAS CON APP CERRADA
-async function registrarTokenNotificaciones(usuarioActual) {
+// 🔑 REGISTRAR TOKEN FCM EN FIRESTORE
+async function registrarTokenNotificaciones(nombreUsuario) {
     try {
-        if (!('Notification' in window)) return;
-
-        const permission = await Notification.requestPermission();
-        if (permission !== 'granted') {
-            console.log("Permiso de notificaciones denegado.");
+        if (!("Notification" in window)) {
+            console.warn("Este navegador no soporta notificaciones.");
             return;
         }
 
-        const messaging = getMessaging();
-        
-        // Obtenemos el token único de este dispositivo
-        const currentToken = await getToken(messaging, { 
-            vapidKey: "BALu-Lw09JhiDXBrpvGBPei4gM1YX4QKatJBxVt2zYSgtn2l_LHmPGEA_iGf6Y1LTxOGyJV9sE3G-6EMfualKn0" // 👈 Pega tu VAPID Key aquí
+        // 1. Pedir permiso explícito de notificaciones
+        const permiso = await Notification.requestPermission();
+        if (permiso !== "granted") {
+            console.warn("⚠️ El usuario no aceptó los permisos de notificación.");
+            return;
+        }
+
+        // 2. Esperar a que el Service Worker esté listo
+        const registration = await navigator.serviceWorker.ready;
+
+        // 3. Obtener el token FCM desde Google
+        const tokenActual = await getToken(messaging, {
+            serviceWorkerRegistration: registration
         });
 
-        if (currentToken) {
-            console.log("Token Push obtenido con éxito.");
-            // Guardamos el token en la base de datos dentro del perfil del usuario
-            const q = query(collection(db, "usuarios"), where("usuario", "==", usuarioActual.toLowerCase()));
-            const snap = await getDocs(q);
-            
-            snap.forEach(async (docSnap) => {
-                await updateDoc(docSnap.ref, { tokenFCM: currentToken });
-            });
+        if (tokenActual) {
+            console.log("🔑 Token FCM obtenido:", tokenActual);
+
+            // 4. Buscar al usuario en la colección 'usuarios' de Firestore
+            const q = query(collection(db, "usuarios"), where("usuario", "==", nombreUsuario));
+            const querySnapshot = await getDocs(q);
+
+            if (!querySnapshot.empty) {
+                const userDoc = querySnapshot.docs[0];
+                await updateDoc(doc(db, "usuarios", userDoc.id), {
+                    tokenFCM: tokenActual
+                });
+                console.log("✅ ¡Token FCM guardado con éxito en Firestore para:", nombreUsuario);
+            } else {
+                console.error("❌ No se encontró el documento del usuario en Firestore.");
+            }
         } else {
-            console.log("No se pudo generar el token FCM.");
+            console.warn("⚠️ No se pudo generar el token de FCM.");
         }
-    } catch (err) {
-        console.error("Error al registrar token de notificaciones:", err);
+    } catch (error) {
+        console.error("❌ Error al registrar token FCM:", error);
     }
 }
 // Cambios de pantalla seguros (No se rompen si falta algún ID en tu HTML)
