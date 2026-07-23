@@ -74,10 +74,10 @@ async function registrarTokenNotificaciones(nombreUsuario) {
             return;
         }
 
-        // 2. Esperar a que el Service Worker esté listo
-        const registration = await navigator.serviceWorker.ready;
+        // 2. REGISTRAR EXPLÍCITAMENTE EL ARCHIVO EN LA SUBDIVISIÓN DE GITHUB PAGES
+        const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
 
-        // 3. Obtener el token FCM desde Google
+        // 3. Obtener el token FCM desde Google pasando el registro correcto
         const tokenActual = await getToken(messaging, {
             serviceWorkerRegistration: registration
         });
