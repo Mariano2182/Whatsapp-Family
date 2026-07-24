@@ -15,6 +15,8 @@ let activeChatId = null;
 let unsubscribeChatsList = null;
 let unsubscribeChatMessages = null;
 let unsubscribeUsuariosAdmin = null; 
+let escucharEscribiendoUnsubscribe = null; // 👈 NUEVA: Para apagar la escucha del indicador
+let temporizadorEscribiendo = null; // 👈 NUEVA: Para controlar el tiempo del aviso
 
 let listaIniciada = false; 
 let replyTarget = null; 
