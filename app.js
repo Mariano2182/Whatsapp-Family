@@ -595,6 +595,7 @@ window.logout = function(){
 
 window.volverAListaChats = function() {
     if (unsubscribeChatMessages) unsubscribeChatMessages();
+    if (escucharEscribiendoUnsubscribe) escucharEscribiendoUnsubscribe(); // 👈 NUEVO: Apaga la escucha al salir
     activeChatId = null;
     const elSala = document.getElementById("chat-room-view");
     const elLista = document.getElementById("chats-list-view");
