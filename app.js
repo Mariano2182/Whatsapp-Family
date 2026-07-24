@@ -509,6 +509,76 @@ async function enviarMensaje() {
 }
 
 // Vinculación global de funciones
+// ==========================================
+// ⌨️ SISTEMA DE "ESCRIBIENDO..."
+// ==========================================
+
+// 1. Detectar cuando YO escribo
+const inputMensaje = document.getElementById("msg-input");
+if (inputMensaje) {
+    inputMensaje.addEventListener("input", async () => {
+        if (!currentUser || !activeChatId) return; 
+
+        try {
+            const q = query(collection(db, "usuarios"), where("usuario", "==", currentUser.usuario));
+            const querySnapshot = await getDocs(q);
+            
+            if (!querySnapshot.empty) {
+                const miDocId = querySnapshot.docs[0].id;
+
+                // Avisamos que estamos escribiendo en el chat actual
+                await updateDoc(doc(db, "usuarios", miDocId), {
+                    escribiendoEn: activeChatId
+                });
+
+                clearTimeout(temporizadorEscribiendo);
+
+                temporizadorEscribiendo = setTimeout(async () => {
+                    await updateDoc(doc(db, "usuarios", miDocId), {
+                        escribiendoEn: ""
+                    });
+                }, 1500);
+            }
+        } catch (error) {
+            console.error("Error al actualizar estado escribiendo:", error);
+        }
+    });
+}
+
+// 2. Escuchar si OTRO está escribiendo en este chat
+function activarEscuchaEscribiendo(chatId) {
+    if (escucharEscribiendoUnsubscribe) {
+        escucharEscribiendoUnsubscribe();
+    }
+
+    const indicador = document.getElementById("indicador-escribiendo");
+    if (!indicador) return;
+
+    // Buscamos a cualquier familiar que esté escribiendo en esta misma sala
+    const q = query(collection(db, "usuarios"), where("escribiendoEn", "==", chatId));
+    
+    escucharEscribiendoUnsubscribe = onSnapshot(q, (snapshot) => {
+        let alguienEscribiendo = false;
+        let nombreEscribiendo = "";
+
+        snapshot.forEach((docSnap) => {
+            const datos = docSnap.data();
+            // Si el que escribe NO soy yo, mostramos el mensaje
+            if (datos.usuario !== currentUser.usuario) {
+                alguienEscribiendo = true;
+                nombreEscribiendo = datos.usuario;
+            }
+        });
+
+        if (alguienEscribiendo) {
+            indicador.innerText = `${nombreEscribiendo} está escribiendo...`;
+            indicador.style.display = "block";
+        } else {
+            indicador.style.display = "none";
+        }
+    });
+}
+// ==========================================
 window.login = login;
 window.enviarMensaje = enviarMensaje;
 
