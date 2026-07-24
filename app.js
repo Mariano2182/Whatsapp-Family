@@ -394,7 +394,10 @@ if (btnAgregar) {
         });
 
         chatBox.scrollTop = chatBox.scrollHeight;
-    });
+    }); // <- Aquí termina tu onSnapshot actual
+
+    // 👉 NUEVO: Encender la escucha de "escribiendo..."
+    activarEscuchaEscribiendo(chatId);
 }
 
 async function login() {
