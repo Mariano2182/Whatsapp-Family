@@ -75,6 +75,11 @@
             <button class="icon-btn" onclick="cancelarRespuesta()">❌</button>
         </div>
 
+        <!-- 👉 NUEVO: INDICADOR DE ESCRIBIENDO -->
+        <div id="indicador-escribiendo" style="display: none; color: #00a884; font-size: 0.85em; font-style: italic; padding: 0 15px 5px 15px;">
+            escribiendo...
+        </div>
+
         <footer class="chat-input-area">
             <input type="file" id="gallery-input" accept="image/*" class="hidden" onchange="subirFoto(this)">
             <input type="file" id="camera-input" accept="image/*" capture="environment" class="hidden" onchange="subirFoto(this)">
